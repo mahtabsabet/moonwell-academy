@@ -54,7 +54,8 @@ const SPEED    = 150;       // player walk speed in px/sec
 const PLAYER_H    = 52;     // on-screen player HEIGHT in px (~1.6 tiles tall)
 const PLAYER_AR   = 0.565;  // sprite aspect (width / height) after cropping
 const PROP_DRAW   = 42;     // on-screen prop size in px (drawn near native, crisp)
-const CHAR_KINDS  = new Set(["teacher", "shop", "friend"]); // drawn as tall characters
+const CHAR_KINDS  = new Set(["teacher", "shop", "friend",       // drawn as tall characters
+  "t_potions", "t_astronomy", "t_divination", "t_crystals", "t_spellcraft", "t_kitchen"]);
 
 /* ---------- Items (herbs, brewing bases + potions) ----------
    kind: "herb" | "base" | "potion". sell: coin value. color: [r,g,b].
@@ -134,6 +135,75 @@ const DIALOGUE = {
   ],
 };
 
+/* ---------- Subjects / classes ----------
+   Each class has a teacher you tap to attend. Attending the first time grants a
+   skill point and records a journal "takeaway"; lessons are real-world grounded
+   correspondences. learnsRecipe: attending unlocks the brewing recipe.
+   Add a subject here + a teacher interactable in a room to create a new class. */
+const SUBJECTS = {
+  herbology: {
+    name: "Herbology", teacher: "Prof. Sage", learnsRecipe: true,
+    takeaway: "Lavender (Air, Mercury) calms the mind. Forage a sprig, steep in spring water.",
+    lesson: DIALOGUE.teacher_learn,
+    review: DIALOGUE.teacher_repeat,
+  },
+  potions: {
+    name: "Potions & Alchemy", teacher: "Prof. Hollis",
+    takeaway: "Infusions steep gentle herbs; decoctions simmer roots. Brew with intention.",
+    lesson: [
+      { s: "Prof. Hollis", t: "Potions is patient work. An infusion steeps soft herbs in hot water." },
+      { s: "Prof. Hollis", t: "A decoction simmers tougher roots and barks to draw their virtue out." },
+      { s: "Prof. Hollis", t: "Add ingredients one at a time, and brew with clear intention — the cauldron amplifies it." },
+    ],
+  },
+  astronomy: {
+    name: "Astronomy & Lunar Studies", teacher: "Prof. Vega",
+    takeaway: "Wax to begin, wane to release. Each day answers to a planet.",
+    lesson: [
+      { s: "Prof. Vega", t: "The moon waxes from new to full, then wanes back to new." },
+      { s: "Prof. Vega", t: "Begin new work as she waxes; release and rest as she wanes." },
+      { s: "Prof. Vega", t: "Each day has its planet: Mon-Moon, Tue-Mars, Wed-Mercury, Thu-Jupiter, Fri-Venus, Sat-Saturn, Sun-Sun." },
+      { s: "Prof. Vega", t: "Work with the sky's timing and your craft finds an easier current." },
+    ],
+  },
+  divination: {
+    name: "Divination", teacher: "Madame Vesper",
+    takeaway: "Tarot: 22 Major, 56 Minor. Tasseomancy reads tea leaves. It reveals, not dictates.",
+    lesson: [
+      { s: "Madame Vesper", t: "Divination listens; it does not command. The cards and leaves offer a mirror, not a verdict." },
+      { s: "Madame Vesper", t: "Tarot holds 22 Major Arcana for life's great themes, and 56 Minor for daily currents." },
+      { s: "Madame Vesper", t: "In tasseomancy we read the shapes tea leaves leave behind. Steady mind, soft eyes." },
+    ],
+  },
+  crystals: {
+    name: "Crystals & Lithomancy", teacher: "Prof. Beryl",
+    takeaway: "Amethyst calms, quartz amplifies, rose quartz for love. Cleanse, then charge.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Stones hold steady energies. Amethyst calms, clear quartz amplifies, rose quartz opens the heart." },
+      { s: "Prof. Beryl", t: "Cleanse a new stone in moonlight or running water, then charge it with your intent." },
+      { s: "Prof. Beryl", t: "In lithomancy we cast the stones and read where, and how, they fall." },
+    ],
+  },
+  spellcraft: {
+    name: "Spellcraft & Sigils", teacher: "Prof. Ember",
+    takeaway: "Candle colours carry intent. Sigil = intention, minus repeats, woven into one mark.",
+    lesson: [
+      { s: "Prof. Ember", t: "A spell is intention given form. Choose a candle by colour — green growth, blue calm, red courage." },
+      { s: "Prof. Ember", t: "To make a sigil: write your intention, strike out repeated letters, weave what remains into one mark." },
+      { s: "Prof. Ember", t: "Charge the mark with focus — then release it, and let it work." },
+    ],
+  },
+  kitchen: {
+    name: "Kitchen Witchery & Folklore", teacher: "Miss Marjoram",
+    takeaway: "Cook with intent. Rosemary = protection, basil = prosperity, cinnamon = luck.",
+    lesson: [
+      { s: "Miss Marjoram", t: "The hearth is the heart of the home. Cook with intent and a meal becomes a small spell." },
+      { s: "Miss Marjoram", t: "Kitchen herbs carry meaning: rosemary for protection, basil for prosperity, cinnamon for warmth and luck." },
+      { s: "Miss Marjoram", t: "Folklore keeps the old protections — salt on the threshold, iron at the door." },
+    ],
+  },
+};
+
 /* ---------- Maps ----------
    Every room shares a simple bordered grid: '#' = wall, '.' = floor.
    Doors and interactables are placed as objects ON the grid; doors override
@@ -165,82 +235,199 @@ const ROOMS = {
     floor: [56, 44, 70],
     grid: STD_GRID,
     doors: [
-      { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 10, label: "Hall v" },
+      { gx: 5, gy: 11, to: "courtyard", atGx: 5, atGy: 10, label: "Courtyard v" },
     ],
     inters: [
-      { gx: 2, gy: 2, kind: "bed", name: "Bed", color: [90, 120, 200], action: "sleep" },
+      { gx: 2, gy: 2, kind: "bed",  name: "Bed",     color: [90, 120, 200], action: "sleep" },
+      { gx: 9, gy: 2, kind: "desk", name: "Journal", color: [150, 130, 90], action: "journal" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
     decor: [
-      { gx: 9, gy: 1, kind: "bookshelf" },
-      { gx: 1, gy: 8, kind: "desk" },
-      { gx: 9, gy: 9, kind: "telescope" },
+      { gx: 9, gy: 9, kind: "bookshelf" },
       { gx: 1, gy: 1, kind: "lantern", size: 26 },
       { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 40 },
     ],
   },
-  hallway: {
-    name: "Dorm Hallway",
-    floor: [44, 46, 72],
+
+  // ---- Central hub: the courtyard quad ----
+  courtyard: {
+    name: "Academy Courtyard",
+    floor: [50, 70, 56],
     grid: STD_GRID,
     doors: [
-      { gx: 5,  gy: 0,  to: "classroom",  atGx: 5,  atGy: 10, label: "Class ^"   },
-      { gx: 11, gy: 5,  to: "greenhouse", atGx: 1,  atGy: 5,  label: "Garden >"  },
-      { gx: 0,  gy: 6,  to: "village",    atGx: 10, atGy: 6,  label: "Village <" },
-      { gx: 5,  gy: 11, to: "dorm",       atGx: 5,  atGy: 10, label: "Dorm v"    },
+      { gx: 5,  gy: 11, to: "dorm",        atGx: 5,  atGy: 10, label: "Dorm v" },
+      { gx: 0,  gy: 5,  to: "village",     atGx: 10, atGy: 6,  label: "Village <" },
+      { gx: 11, gy: 6,  to: "greenhouse",  atGx: 1,  atGy: 5,  label: "Greenhouse >" },
+      { gx: 5,  gy: 0,  to: "academy",     atGx: 5,  atGy: 10, label: "Academy ^" },
+      { gx: 9,  gy: 0,  to: "observatory", atGx: 6,  atGy: 10, label: "Observatory ^" },
     ],
     inters: [
-      { gx: 7, gy: 6, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
+      { gx: 3, gy: 8, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
     ],
     decor: [
       { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
       { gx: 10, gy: 1,  kind: "lantern", size: 26 },
+      { gx: 2,  gy: 10, kind: "pots" },
       { gx: 10, gy: 10, kind: "barrel" },
-      { gx: 5,  gy: 9,  kind: "rug", solid: false, flat: true, size: 40 },
     ],
   },
-  classroom: {
-    name: "Herbalism Class",
-    floor: [70, 58, 44],
+
+  // ---- Indoor classroom wing ----
+  academy: {
+    name: "Academy Hall",
+    floor: [60, 52, 72],
     grid: STD_GRID,
     doors: [
-      { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 1, label: "Hall v" },
+      { gx: 5,  gy: 11, to: "courtyard",  atGx: 5, atGy: 1, label: "Courtyard v" },
+      { gx: 2,  gy: 0,  to: "potions",    atGx: 5, atGy: 10, label: "Potions ^" },
+      { gx: 5,  gy: 0,  to: "divination", atGx: 5, atGy: 10, label: "Divination ^" },
+      { gx: 8,  gy: 0,  to: "crystals",   atGx: 5, atGy: 10, label: "Crystals ^" },
+      { gx: 0,  gy: 5,  to: "spellcraft", atGx: 5, atGy: 10, label: "Spellcraft <" },
+      { gx: 11, gy: 5,  to: "kitchen",    atGx: 5, atGy: 10, label: "Kitchen >" },
     ],
-    inters: [
-      { gx: 6, gy: 2, kind: "teacher",  name: "Prof. Sage", color: [120, 200, 120], action: "class" },
-      { gx: 3, gy: 8, kind: "cauldron", name: "Cauldron",   color: [60, 165, 165], action: "brew"  },
-    ],
+    inters: [],
     decor: [
-      { gx: 9, gy: 1, kind: "bookshelf" },
-      { gx: 1, gy: 2, kind: "desk" },
-      { gx: 9, gy: 8, kind: "mortar", size: 32 },
-      { gx: 1, gy: 8, kind: "pots" },
+      { gx: 2, gy: 2, kind: "bookshelf" },
+      { gx: 9, gy: 2, kind: "bookshelf" },
+      { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 44 },
+      { gx: 1, gy: 9, kind: "lantern", size: 26 },
+      { gx: 10, gy: 9, kind: "lantern", size: 26 },
     ],
   },
+
+  // ---- Herbology is held in the greenhouse (forage + class together) ----
   greenhouse: {
-    name: "Greenhouse",
+    name: "Greenhouse — Herbology",
     floor: [40, 64, 48],
     grid: STD_GRID,
     doors: [
-      { gx: 0, gy: 5, to: "hallway", atGx: 10, atGy: 5, label: "Hall <" },
+      { gx: 0, gy: 5, to: "courtyard", atGx: 10, atGy: 6, label: "Courtyard <" },
     ],
     inters: [
-      { gx: 6, gy: 3, kind: "herb", name: "Lavender", color: [150, 130, 215], action: "forage" },
+      { gx: 6, gy: 2, kind: "teacher", name: "Prof. Sage", color: [120, 200, 120], action: "class", subject: "herbology" },
+      { gx: 9, gy: 3, kind: "herb",    name: "Lavender",   color: [150, 130, 215], action: "forage" },
     ],
     decor: [
       { gx: 3, gy: 8, kind: "pots" },
       { gx: 9, gy: 8, kind: "pots" },
-      { gx: 9, gy: 2, kind: "barrel" },
-      { gx: 2, gy: 9, kind: "lantern", size: 26 },
+      { gx: 3, gy: 2, kind: "barrel" },
+      { gx: 1, gy: 9, kind: "lantern", size: 26 },
     ],
   },
+
+  // ---- Indoor classrooms (off the Academy Hall) ----
+  potions: {
+    name: "Potions & Alchemy",
+    floor: [50, 60, 72],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "academy", atGx: 2, atGy: 1, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "t_potions", name: "Prof. Hollis", color: [60, 165, 165], action: "class", subject: "potions" },
+      { gx: 3, gy: 8, kind: "cauldron",  name: "Cauldron",     color: [60, 165, 165], action: "brew" },
+    ],
+    decor: [
+      { gx: 9, gy: 2, kind: "bookshelf" },
+      { gx: 9, gy: 8, kind: "mortar", size: 32 },
+      { gx: 1, gy: 8, kind: "pots" },
+    ],
+  },
+  divination: {
+    name: "Divination",
+    floor: [56, 48, 78],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "academy", atGx: 5, atGy: 1, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "t_divination", name: "Madame Vesper", color: [150, 120, 210], action: "class", subject: "divination" },
+    ],
+    decor: [
+      { gx: 3, gy: 3, kind: "crystal_ball", size: 34 },
+      { gx: 6, gy: 7, kind: "rug", solid: false, flat: true, size: 44 },
+      { gx: 9, gy: 2, kind: "bookshelf" },
+      { gx: 1, gy: 2, kind: "lantern", size: 26 },
+    ],
+  },
+  crystals: {
+    name: "Crystals & Lithomancy",
+    floor: [54, 52, 76],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "academy", atGx: 8, atGy: 1, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "t_crystals", name: "Prof. Beryl", color: [190, 150, 220], action: "class", subject: "crystals" },
+    ],
+    decor: [
+      { gx: 9, gy: 3, kind: "crystal_ball", size: 30 },
+      { gx: 2, gy: 8, kind: "pots" },
+      { gx: 9, gy: 8, kind: "barrel" },
+      { gx: 2, gy: 2, kind: "lantern", size: 26 },
+    ],
+  },
+  spellcraft: {
+    name: "Spellcraft & Sigils",
+    floor: [64, 52, 60],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "academy", atGx: 1, atGy: 5, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "t_spellcraft", name: "Prof. Ember", color: [220, 160, 90], action: "class", subject: "spellcraft" },
+    ],
+    decor: [
+      { gx: 3, gy: 3, kind: "lantern", size: 26 },
+      { gx: 9, gy: 3, kind: "lantern", size: 26 },
+      { gx: 2, gy: 8, kind: "desk" },
+      { gx: 9, gy: 8, kind: "bookshelf" },
+    ],
+  },
+  kitchen: {
+    name: "Kitchen Witchery",
+    floor: [68, 56, 48],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "academy", atGx: 10, atGy: 5, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "t_kitchen", name: "Miss Marjoram", color: [210, 120, 100], action: "class", subject: "kitchen" },
+    ],
+    decor: [
+      { gx: 3, gy: 8, kind: "barrel" },
+      { gx: 9, gy: 8, kind: "pots" },
+      { gx: 9, gy: 3, kind: "mortar", size: 32 },
+      { gx: 1, gy: 2, kind: "lantern", size: 26 },
+    ],
+  },
+
+  // ---- Up on the grounds: the observatory ----
+  observatory: {
+    name: "Observatory",
+    floor: [26, 28, 52],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "courtyard", atGx: 9, atGy: 1, label: "Down v" },
+    ],
+    inters: [
+      { gx: 6, gy: 3, kind: "t_astronomy", name: "Prof. Vega", color: [120, 140, 230], action: "class", subject: "astronomy" },
+    ],
+    decor: [
+      { gx: 3, gy: 8, kind: "telescope", size: 48 },
+      { gx: 9, gy: 8, kind: "telescope", size: 48 },
+      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 10, gy: 1, kind: "lantern", size: 26 },
+    ],
+  },
+
   village: {
     name: "Village Market",
     floor: [44, 58, 70],
     grid: STD_GRID,
     doors: [
-      { gx: 11, gy: 6, to: "hallway", atGx: 1, atGy: 6, label: "Hall >" },
+      { gx: 11, gy: 6, to: "courtyard", atGx: 1, atGy: 5, label: "Courtyard >" },
     ],
     inters: [
       { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "sell" },
@@ -343,9 +530,11 @@ function resetGame() {
     roomId: "dorm",
     inv: { lavender: 0, lavender_calm_tonic: 0 },
     knownRecipes: {},     // recipe id -> true
+    skills: {},           // subject id -> level (raised by attending class)
+    journal: {},          // subject id -> takeaway line (recorded on first lesson)
     coin: 0,
     friendship: 0,
-    flags: { attended: false, brewed: false, sold: false, metFriend: false },
+    flags: { brewed: false, sold: false, metFriend: false },
     gameOver: false,
   };
   player = { px: 0, py: 0, gx: 5, gy: 9, dir: "up" };
@@ -355,11 +544,12 @@ function resetGame() {
   dialogue = null;       // { lines:[...], idx }
   toastMsg = null;       // { text, until }
   brewUI = null;         // { contents:[ids], grimoireOpen, msg }
+  journalOpen = false;   // field-journal overlay
   placePlayer(5, 9, "up");
   toast("Day 1 — good morning! Tap anywhere to walk.");
 }
 
-let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI;
+let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen;
 
 /* ---------- Tiny helpers ---------- */
 const room   = () => ROOMS[state.roomId];
@@ -479,21 +669,34 @@ function onArrive() {
 /* ---------- Interactions ---------- */
 function doAction(o) {
   switch (o.action) {
-    case "class":  return actClass();
-    case "forage": return actForage();
-    case "brew":   return actBrew();
-    case "sell":   return actSell();
-    case "friend": return actFriend();
-    case "sleep":  return actSleep();
+    case "class":   return actClass(o.subject);
+    case "forage":  return actForage();
+    case "brew":    return actBrew();
+    case "sell":    return actSell();
+    case "friend":  return actFriend();
+    case "sleep":   return actSleep();
+    case "journal": return actJournal();
   }
 }
 
-function actClass() {
-  if (state.flags.attended) { startDialogue(DIALOGUE.teacher_repeat); return; }
-  state.flags.attended = true;
-  state.knownRecipes[RECIPE.id] = true;
-  startDialogue(DIALOGUE.teacher_learn);
+// Attend a class. First time: grant a skill point, record the journal takeaway,
+// unlock any recipe, and play the full lesson. Later visits play a short review.
+function actClass(id) {
+  const s = SUBJECTS[id];
+  if (!s) return;
+  const first = !state.skills[id];
+  if (first) {
+    state.skills[id] = 1;
+    state.journal[id] = s.takeaway;
+    if (s.learnsRecipe) state.knownRecipes[RECIPE.id] = true;
+    startDialogue(s.lesson);
+  } else {
+    startDialogue(s.review || [{ s: s.teacher, t: "Remember: " + s.takeaway }]);
+  }
 }
+
+// Open the field journal (skills studied + lesson takeaways).
+function actJournal() { journalOpen = true; }
 
 function actForage() {
   state.inv.lavender += 1;
@@ -590,14 +793,14 @@ function brewLeave() {
 /* ---------- Objective hint (gentle, cozy guidance) ---------- */
 function hintText() {
   const f = state.flags, inv = state.inv;
-  if (!f.attended)                      return "Attend class: Classroom (north door).";
+  if (!state.skills.herbology)          return "Attend Herbology: Greenhouse (Courtyard, east).";
   if (inv.lavender === 0 && inv.lavender_calm_tonic === 0)
-                                        return "Forage Lavender: Greenhouse (east door).";
+                                        return "Forage Lavender in the Greenhouse.";
   if (inv.lavender > 0 && inv.lavender_calm_tonic === 0)
-                                        return "Brew at the Cauldron in the Classroom.";
-  if (inv.lavender_calm_tonic > 0)      return "Sell the tonic: Village market (west door).";
-  if (f.sold && !f.metFriend)           return "Say hi to Robin in the hallway.";
-  return "Head home and sleep to end the day.";
+                                        return "Brew at the Potions cauldron (Academy ^).";
+  if (inv.lavender_calm_tonic > 0)      return "Sell the tonic at the Village market.";
+  if (f.sold && !f.metFriend)           return "Say hi to Robin in the courtyard.";
+  return "Explore more classes, or sleep to end the day.";
 }
 
 /* ============================================================================
@@ -607,6 +810,7 @@ onMousePress(() => {
   const m = mousePos();
 
   if (state.gameOver) { resetGame(); return; }        // tap summary -> replay
+  if (journalOpen) { journalOpen = false; return; }    // tap closes the journal
   if (dialogue) {                                      // tap advances dialogue
     dialogue.idx += 1;
     if (dialogue.idx >= dialogue.lines.length) dialogue = null;
@@ -639,7 +843,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (state.gameOver || dialogue || brewUI || path.length === 0) return;
+  if (state.gameOver || dialogue || brewUI || journalOpen || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
@@ -768,8 +972,9 @@ onDraw(() => {
 
   drawHUD(r);
   if (brewUI)         drawBrew();
+  if (journalOpen)    drawJournal();
   if (dialogue)       drawDialogue();
-  else if (toastMsg && !brewUI) drawToast();
+  else if (toastMsg && !brewUI && !journalOpen) drawToast();
   if (state.gameOver) drawSummary();
 });
 
@@ -840,18 +1045,47 @@ function drawSummary() {
   drawText({ text: "You drifted off under a quiet moon.", pos: vec2(cxm, 152), size: 11,
              color: rgb(200, 200, 220), anchor: "center" });
 
+  const studied = Object.keys(state.skills).length;
   const lines = [
-    "Recipe learned:  " + (state.knownRecipes[RECIPE.id] ? RECIPE.name : "none"),
-    "Potion brewed:   " + (state.flags.brewed ? "yes" : "no"),
-    "Coin earned:     " + state.coin,
-    "Friendship:      " + state.friendship + (state.flags.metFriend ? "  (met Robin)" : ""),
+    "Classes attended:  " + studied + " / " + Object.keys(SUBJECTS).length,
+    "Recipe learned:    " + (state.knownRecipes[RECIPE.id] ? RECIPE.name : "none"),
+    "Potion brewed:     " + (state.flags.brewed ? "yes" : "no"),
+    "Coin earned:       " + state.coin,
+    "Friendship:        " + state.friendship + (state.flags.metFriend ? "  (met Robin)" : ""),
   ];
   lines.forEach((t, i) => {
-    drawText({ text: t, pos: vec2(cxm, 210 + i * 26), size: 12, color: rgb(225, 225, 240), anchor: "center" });
+    drawText({ text: t, pos: vec2(cxm, 200 + i * 26), size: 12, color: rgb(225, 225, 240), anchor: "center" });
   });
 
-  drawText({ text: "Tap to start a fresh day", pos: vec2(cxm, 360), size: 12,
+  drawText({ text: "Tap to start a fresh day", pos: vec2(cxm, 372), size: 12,
              color: rgb(170, 200, 255), anchor: "center" });
+}
+
+/* ---------- Field journal: a parchment page of studies + takeaways ---------- */
+function drawJournal() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.6 });
+  const bx = 12, by = 46, bw = CANVAS_W - 24, bh = CANVAS_H - 100;
+  drawRect({ pos: vec2(bx, by), width: bw, height: bh, color: rgb(58, 34, 30), radius: 12,
+             outline: { color: rgb(150, 120, 60), width: 3 } });
+  const px = bx + 12, py = by + 12, pw = bw - 24, ph = bh - 24;
+  drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
+
+  let y = py + 14, x = px + 16;
+  drawText({ text: "Field Journal", pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 30;
+  drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
+             size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 26;
+
+  for (const id in SUBJECTS) {
+    const studied = !!state.skills[id];
+    const dots = "*".repeat(state.skills[id] || 0);
+    drawText({ text: SUBJECTS[id].name + (studied ? "  " + dots : ""), pos: vec2(x, y),
+               size: 15, font: hf(), color: studied ? rgb(96, 58, 110) : rgb(150, 135, 110) }); y += 17;
+    drawText({ text: studied ? state.journal[id] : "— not yet studied —", pos: vec2(x + 6, y),
+               size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 36, lineSpacing: 1 });
+    y += (studied ? 26 : 18);
+  }
+  drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 42),
+             size: 11, font: hf(), color: rgb(210, 200, 225), anchor: "center" });
 }
 
 /* ============================================================================
