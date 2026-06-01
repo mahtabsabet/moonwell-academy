@@ -66,6 +66,7 @@ const ITEMS = {
     botanical: "Lavandula angustifolia",
     element: "Air",
     planet: "Mercury",
+    uses: "Calm, peace, restful sleep",
     lore: "Calming and cleansing. Eases anxious thoughts and invites restful sleep.",
   },
   spring_water: {
@@ -94,9 +95,9 @@ const RECIPE = {
   makes: "lavender_calm_tonic",
   summary: "A calming tonic drawn from lavender's airy, Mercurial nature.",
   steps: [
-    "1. Fill the cauldron with Spring Water.",
-    "2. Add a sprig of fresh Lavender.",
-    "3. Stir gently and steep until pale violet.",
+    "1. Fill with spring water.",
+    "2. Add a sprig of lavender.",
+    "3. Steep until pale violet.",
   ],
 };
 
@@ -309,6 +310,16 @@ kaboom({
   crisp: true,          // keep pixels sharp for future pixel-art
   global: true,
 });
+
+/* ---------- Handwriting font for the grimoire ----------
+   Loaded from a CDN; if it fails the grimoire just uses the default font.
+   hf() returns the font name only once it's ready, so text never errors. */
+let HAND_READY = false;
+try {
+  loadFont("hand", "https://cdn.jsdelivr.net/npm/@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2")
+    .then(() => { HAND_READY = true; }).catch(() => {});
+} catch (e) { /* older engine: ignore, fall back to default font */ }
+const hf = () => (HAND_READY ? "hand" : undefined);
 
 /* ---------- Sprite loader ----------
    Loads every non-empty ASSETS entry; `ready(key)` is true once it's usable,
@@ -927,36 +938,93 @@ function drawBrew() {
   if (brewUI.grimoireOpen) drawGrimoire();
 }
 
-// The grimoire: known recipe(s) with real correspondences + the brewing method.
+// The grimoire: rendered as an open book — a two-page parchment spread with a
+// handwriting font, section tabs, framed illustrations and real correspondences.
+const INK     = rgb(74, 52, 34);    // body handwriting
+const INK_HDR = rgb(96, 58, 110);   // headings (faded violet ink)
+const PARCH   = rgb(236, 224, 194); // page colour
+const PARCH_D = rgb(214, 198, 162); // page shadow / ruled lines
+
+// one small framed illustration (sprite if loaded, else a coloured chip)
+function bookIllo(cx0, cy0, size, spriteKey, fallbackColor) {
+  drawRect({ pos: vec2(cx0, cy0), width: size + 10, height: size + 10, anchor: "center",
+             color: rgb(228, 214, 180), radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
+  if (ready(spriteKey)) drawSprite({ sprite: spriteKey, pos: vec2(cx0, cy0), width: size, height: size, anchor: "center" });
+  else drawRect({ pos: vec2(cx0, cy0), width: size, height: size, anchor: "center", color: col(fallbackColor), radius: 4 });
+}
+
+// faint ruled lines to sell the "written page" look
+function ruledLines(px, py, pw, ph) {
+  for (let ly = py + 18; ly < py + ph - 6; ly += 16) {
+    drawRect({ pos: vec2(px + 6, ly), width: pw - 12, height: 1, color: PARCH_D, opacity: 0.5 });
+  }
+}
+
+// a page heading "tab"
+function pageTab(px, py, pw, label) {
+  drawRect({ pos: vec2(px + pw / 2, py - 8), width: 80, height: 18, anchor: "center",
+             color: rgb(176, 150, 200), radius: 9, outline: { color: rgb(120, 95, 150), width: 1 } });
+  drawText({ text: label, pos: vec2(px + pw / 2, py - 8), size: 12, font: hf(),
+             color: rgb(40, 28, 48), anchor: "center" });
+}
+
 function drawGrimoire() {
-  drawRect({ pos: vec2(16, 40), width: CANVAS_W - 32, height: CANVAS_H - 90,
-             color: rgb(30, 24, 40), opacity: 0.99, radius: 10,
-             outline: { color: rgb(150, 130, 215), width: 2 } });
-  const x = 32; let y = 60;
-  drawText({ text: "Grimoire", pos: vec2(x, y), size: 16, color: rgb(235, 220, 255) }); y += 30;
+  // dim the cauldron behind
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.6 });
+
+  // leather book cover
+  const bx = 10, by = 42, bw = CANVAS_W - 20, bh = CANVAS_H - 96;
+  drawRect({ pos: vec2(bx, by), width: bw, height: bh, color: rgb(58, 34, 30), radius: 12,
+             outline: { color: rgb(150, 120, 60), width: 3 } });
+
+  // two parchment pages + centre spine
+  const pad = 12, gap = 10;
+  const pw = (bw - pad * 2 - gap) / 2, ph = bh - pad * 2;
+  const lpx = bx + pad, rpx = lpx + pw + gap, py = by + pad;
+  drawRect({ pos: vec2(lpx, py), width: pw, height: ph, color: PARCH, radius: 4 });
+  drawRect({ pos: vec2(rpx, py), width: pw, height: ph, color: PARCH, radius: 4 });
+  ruledLines(lpx, py, pw, ph);
+  ruledLines(rpx, py, pw, ph);
+  drawRect({ pos: vec2(CANVAS_W / 2 - 2, py), width: 4, height: ph, color: rgb(40, 24, 22), opacity: 0.55 });
 
   if (!state.knownRecipes[RECIPE.id]) {
-    drawText({ text: "Your grimoire is empty. Attend class to learn a recipe.",
-               pos: vec2(x, y), size: 11, color: rgb(210, 205, 225), width: CANVAS_W - 64 });
+    pageTab(lpx, py, pw, "Herbs");
+    pageTab(rpx, py, pw, "Potions");
+    drawText({ text: "These pages are still blank...", pos: vec2(CANVAS_W / 2, py + ph / 2 - 10),
+               size: 14, font: hf(), color: INK, anchor: "center", width: bw - 60 });
+    drawText({ text: "Attend a class to fill them.", pos: vec2(CANVAS_W / 2, py + ph / 2 + 12),
+               size: 13, font: hf(), color: INK, anchor: "center", width: bw - 60 });
   } else {
-    const lav = ITEMS.lavender;
-    drawText({ text: RECIPE.name, pos: vec2(x, y), size: 13, color: rgb(200, 175, 255) }); y += 22;
-    drawText({ text: RECIPE.summary, pos: vec2(x, y), size: 10, color: rgb(205, 205, 225),
-               width: CANVAS_W - 64 }); y += 34;
-    drawText({ text: "Key herb — Lavender (" + lav.botanical + ")", pos: vec2(x, y), size: 11,
-               color: rgb(190, 170, 235), width: CANVAS_W - 64 }); y += 18;
-    drawText({ text: "Element: " + lav.element + "    Planet: " + lav.planet,
-               pos: vec2(x, y), size: 10, color: rgb(200, 200, 220) }); y += 18;
-    drawText({ text: lav.lore, pos: vec2(x, y), size: 10, color: rgb(200, 200, 220),
-               width: CANVAS_W - 64 }); y += 38;
-    drawText({ text: "Method", pos: vec2(x, y), size: 12, color: rgb(200, 175, 255) }); y += 20;
+    const lav = ITEMS.lavender, tonic = ITEMS.lavender_calm_tonic;
+
+    // ---- LEFT PAGE: Herbs › Lavender ----
+    pageTab(lpx, py, pw, "Herbs");
+    let y = py + 16, lx = lpx + 12, lw = pw - 24;
+    drawText({ text: lav.name, pos: vec2(lpx + pw / 2, y), size: 22, font: hf(), color: INK_HDR, anchor: "center" }); y += 24;
+    drawText({ text: lav.botanical, pos: vec2(lpx + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 22;
+    bookIllo(lpx + pw / 2, y + 34, 60, "herb", lav.color); y += 78;
+    drawText({ text: "Element:  " + lav.element, pos: vec2(lx, y), size: 14, font: hf(), color: INK }); y += 19;
+    drawText({ text: "Planet:  " + lav.planet, pos: vec2(lx, y), size: 14, font: hf(), color: INK }); y += 19;
+    drawText({ text: "Uses:  " + lav.uses, pos: vec2(lx, y), size: 13, font: hf(), color: INK, width: lw, lineSpacing: 2 }); y += 36;
+    drawText({ text: lav.lore, pos: vec2(lx, y), size: 13, font: hf(), color: INK, width: lw, lineSpacing: 2 });
+
+    // ---- RIGHT PAGE: Potions › Lavender Calm Tonic ----
+    pageTab(rpx, py, pw, "Potions");
+    let ry = py + 16, rx = rpx + 12, rw = pw - 24;
+    drawText({ text: tonic.fullName, pos: vec2(rpx + pw / 2, ry), size: 16, font: hf(),
+               color: INK_HDR, anchor: "center", width: rw }); ry += 32;
+    bookIllo(rpx + pw / 2, ry + 30, 54, "item_lavender_calm_tonic", tonic.color); ry += 70;
+    drawText({ text: "Method", pos: vec2(rx, ry), size: 15, font: hf(), color: INK_HDR }); ry += 20;
     for (const s of RECIPE.steps) {
-      drawText({ text: s, pos: vec2(x, y), size: 10, color: rgb(215, 215, 235), width: CANVAS_W - 64 });
-      y += 22;
+      drawText({ text: s, pos: vec2(rx, ry), size: 13, font: hf(), color: INK, width: rw, lineSpacing: 2 });
+      ry += 30;
     }
+    ry += 4;
+    drawText({ text: "Sells for " + tonic.sell + " coin.", pos: vec2(rx, ry), size: 13, font: hf(), color: INK });
   }
-  drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 64),
-             size: 9, color: rgb(160, 160, 185), anchor: "center" });
+
+  drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 42),
+             size: 11, font: hf(), color: rgb(210, 200, 225), anchor: "center" });
 }
 
 /* ---------- Go! ---------- */
