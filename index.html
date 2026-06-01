@@ -239,7 +239,7 @@ const ROOMS = {
     ],
     inters: [
       { gx: 2, gy: 2, kind: "bed",  name: "Bed",     color: [90, 120, 200], action: "sleep" },
-      { gx: 9, gy: 2, kind: "desk", name: "Journal", color: [150, 130, 90], action: "journal" },
+      { gx: 9, gy: 2, kind: "desk", name: "Book of Shadows", color: [150, 130, 90], action: "journal" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
@@ -1071,7 +1071,7 @@ function drawJournal() {
   drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
 
   let y = py + 14, x = px + 16;
-  drawText({ text: "Field Journal", pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 30;
+  drawText({ text: "Book of Shadows", pos: vec2(px + pw / 2, y), size: 20, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 30;
   drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
              size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 26;
 
