@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Moonwell Academy — Vertical Slice</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #14121e;
+    overflow: hidden;
+    touch-action: none;            /* no page scroll/zoom on phones */
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    font-family: sans-serif;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<!-- Single CDN dependency: the Kaboom.js engine -->
+<script src="https://unpkg.com/kaboom@3000.1.17/dist/kaboom.js"></script>
+<script>
+/* ============================================================================
+   MOONWELL ACADEMY — VERTICAL SLICE
+   A cozy, witchy, tap-to-play life-sim loop in one self-contained file.
+
+   Controls: TAP to move (auto-routes around walls), TAP an object/NPC to walk
+   up to it and interact. No D-pad. Mouse click works the same on desktop.
+
+   The 7-step loop:
+     1. Wake in the dorm.   2. Attend class (learn a recipe).
+     3. Forage a Moonbell.  4. Brew the tonic at your cauldron.
+     5. Sell it in the village.   6. Greet a friend in the hall.
+     7. Sleep -> day-complete summary.
+
+   ----------------------------------------------------------------------------
+   ALL GAME DATA LIVES IN THE OBJECTS BELOW. Edit freely to expand the game.
+   Art is placeholder colored rectangles. To swap in pixel-art PNGs later,
+   load them in Kaboom (loadSprite) and draw a sprite instead of a rect in the
+   draw section — one change per asset.
+   ============================================================================ */
+
+/* ---------- Layout constants ---------- */
+const TILE     = 32;        // pixel size of one grid tile
+const GW       = 12;        // grid width  (tiles)  -> 12 * 32 = 384 px
+const GH       = 12;        // grid height (tiles)  -> 12 * 32 = 384 px
+const ORIGIN_Y = 64;        // HUD strip occupies the top 64 px
+const CANVAS_W = GW * TILE;             // 384
+const CANVAS_H = ORIGIN_Y + GH * TILE + 64;  // 64 + 384 + 64 = 512
+const SPEED    = 150;       // player walk speed in px/sec
+
+/* ---------- Items (herbs + potions) ----------
+   kind: "herb" or "potion". sell: coin value when sold. color: [r,g,b]. */
+const ITEMS = {
+  moonbell: {
+    name: "Moonbell",
+    kind: "herb",
+    color: [150, 220, 255],
+    lore: "A pale lunar flower, best picked under a waxing moon.",
+  },
+  moonlit_calm_tonic: {
+    name: "Calm Tonic",
+    fullName: "Moonlit Calm Tonic",
+    kind: "potion",
+    color: [185, 145, 255],
+    sell: 25,
+    lore: "A soothing brew that quiets a restless mind.",
+  },
+};
+
+/* ---------- The recipe you learn in class ----------
+   needs: ingredient ids -> quantity. makes: the produced item id. */
+const RECIPE = {
+  id: "moonlit_calm_tonic",
+  name: "Moonlit Calm Tonic",
+  needs: { moonbell: 1 },
+  makes: "moonlit_calm_tonic",
+};
+
+/* ---------- NPC / object dialogue ---------- */
+const DIALOGUE = {
+  teacher_learn: [
+    { s: "Prof. Sage", t: "Good morning! Today's lesson: the Moonlit Calm Tonic." },
+    { s: "Prof. Sage", t: "Forage a Moonbell in the greenhouse, then brew it in your dorm cauldron." },
+    { s: "You",        t: "Got it — Moonbell, then brew. Thank you, Professor!" },
+  ],
+  teacher_repeat: [
+    { s: "Prof. Sage", t: "You've already mastered today's lesson. Off you go!" },
+  ],
+  friend_first: [
+    { s: "Robin", t: "Oh — morning! First-day jitters? You'll do great here." },
+    { s: "You",   t: "Thanks, Robin. See you around the common room!" },
+  ],
+  friend_again: [
+    { s: "Robin", t: "Brewing already? You're a natural, honestly." },
+  ],
+  merchant_sell: [
+    { s: "Merchant", t: "A Moonlit Calm Tonic! Lovely work. Here's 25 coin." },
+  ],
+  merchant_empty: [
+    { s: "Merchant", t: "Bring me a potion to sell and I'll pay you well." },
+  ],
+};
+
+/* ---------- Maps ----------
+   Every room shares a simple bordered grid: '#' = wall, '.' = floor.
+   Doors and interactables are placed as objects ON the grid; doors override
+   walls and are walkable, interactables are solid (you stand next to them).
+
+     doors:  { gx, gy, to, atGx, atGy, label }
+       -> stepping onto (gx,gy) loads room `to`, placing you at (atGx,atGy).
+     inters: { gx, gy, kind, name, color, action }
+       -> tapping it walks you adjacent, then runs `action`.
+*/
+const STD_GRID = [
+  "############",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "#..........#",
+  "############",
+];
+
+const ROOMS = {
+  dorm: {
+    name: "Your Dorm",
+    floor: [56, 44, 70],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 10, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 2, gy: 2, kind: "bed",      name: "Bed",      color: [90, 120, 200], action: "sleep" },
+      { gx: 9, gy: 2, kind: "cauldron", name: "Cauldron", color: [60, 165, 165], action: "brew"  },
+    ],
+  },
+  hallway: {
+    name: "Dorm Hallway",
+    floor: [44, 46, 72],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5,  gy: 0,  to: "classroom",  atGx: 5,  atGy: 10, label: "Class ^"   },
+      { gx: 11, gy: 5,  to: "greenhouse", atGx: 1,  atGy: 5,  label: "Garden >"  },
+      { gx: 0,  gy: 6,  to: "village",    atGx: 10, atGy: 6,  label: "Village <" },
+      { gx: 5,  gy: 11, to: "dorm",       atGx: 5,  atGy: 10, label: "Dorm v"    },
+    ],
+    inters: [
+      { gx: 7, gy: 6, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
+    ],
+  },
+  classroom: {
+    name: "Herbalism Class",
+    floor: [70, 58, 44],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 1, label: "Hall v" },
+    ],
+    inters: [
+      { gx: 6, gy: 2, kind: "teacher", name: "Prof. Sage", color: [120, 200, 120], action: "class" },
+    ],
+  },
+  greenhouse: {
+    name: "Greenhouse",
+    floor: [40, 64, 48],
+    grid: STD_GRID,
+    doors: [
+      { gx: 0, gy: 5, to: "hallway", atGx: 10, atGy: 5, label: "Hall <" },
+    ],
+    inters: [
+      { gx: 6, gy: 3, kind: "herb", name: "Moonbell", color: [150, 220, 255], action: "forage" },
+    ],
+  },
+  village: {
+    name: "Village Market",
+    floor: [44, 58, 70],
+    grid: STD_GRID,
+    doors: [
+      { gx: 11, gy: 6, to: "hallway", atGx: 1, atGy: 6, label: "Hall >" },
+    ],
+    inters: [
+      { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "sell" },
+    ],
+  },
+};
+
+/* ============================================================================
+   ENGINE SETUP — Kaboom is used as a scaling canvas + input + game loop.
+   All game state is plain JS; we draw everything ourselves with primitives.
+   ============================================================================ */
+kaboom({
+  width: CANVAS_W,
+  height: CANVAS_H,
+  background: [20, 18, 30],
+  stretch: true,        // scale to fill the screen...
+  letterbox: true,      // ...while preserving aspect ratio (bars if needed)
+  touchToMouse: true,   // taps register as mouse presses
+  crisp: true,          // keep pixels sharp for future pixel-art
+  global: true,
+});
+
+/* ---------- Mutable game state ---------- */
+let state;
+function resetGame() {
+  state = {
+    roomId: "dorm",
+    inv: { moonbell: 0, moonlit_calm_tonic: 0 },
+    knownRecipes: {},     // recipe id -> true
+    coin: 0,
+    friendship: 0,
+    flags: { attended: false, brewed: false, sold: false, metFriend: false },
+    gameOver: false,
+  };
+  player = { px: 0, py: 0, gx: 5, gy: 9, dir: "up" };
+  path = [];
+  pendingAction = null;
+  pendingDoor = null;
+  dialogue = null;       // { lines:[...], idx }
+  toastMsg = null;       // { text, until }
+  placePlayer(5, 9, "up");
+  toast("Day 1 — good morning! Tap anywhere to walk.");
+}
+
+let player, path, pendingAction, pendingDoor, dialogue, toastMsg;
+
+/* ---------- Tiny helpers ---------- */
+const room   = () => ROOMS[state.roomId];
+const cx     = (gx) => gx * TILE + TILE / 2;
+const cy     = (gy) => ORIGIN_Y + gy * TILE + TILE / 2;
+const keyOf  = (x, y) => x + "," + y;
+const doorAt = (r, x, y) => r.doors.find((d) => d.gx === x && d.gy === y);
+const interAt = (r, x, y) => r.inters.find((o) => o.gx === x && o.gy === y);
+
+function placePlayer(gx, gy, dir) {
+  player.gx = gx; player.gy = gy;
+  player.px = cx(gx); player.py = cy(gy);
+  if (dir) player.dir = dir;
+}
+
+function loadRoom(id, gx, gy) {
+  state.roomId = id;
+  path = []; pendingAction = null; pendingDoor = null;
+  placePlayer(gx, gy);
+}
+
+function toast(text) {
+  toastMsg = { text, until: time() + 2.4 };
+}
+
+function startDialogue(lines) {
+  dialogue = { lines, idx: 0 };
+}
+
+/* ---------- Pathfinding (BFS on the tile grid) ---------- */
+function walkable(r, x, y) {
+  if (x < 0 || y < 0 || x >= GW || y >= GH) return false;
+  if (doorAt(r, x, y)) return true;        // doors are always walkable
+  if (r.grid[y][x] === "#") return false;  // walls block
+  if (interAt(r, x, y)) return false;      // props/NPCs are solid
+  return true;
+}
+
+// Returns the list of tiles AFTER the start tile leading to the nearest goal,
+// or null if unreachable. `goals` is an array of {x,y}.
+function bfs(r, sx, sy, goals) {
+  const goalSet = new Set(goals.map((g) => keyOf(g.x, g.y)));
+  const startK = keyOf(sx, sy);
+  if (goalSet.has(startK)) return [];      // already on a goal tile
+  const prev = {};
+  const visited = new Set([startK]);
+  const queue = [{ x: sx, y: sy }];
+  const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const [dx, dy] of dirs) {
+      const nx = cur.x + dx, ny = cur.y + dy;
+      const k = keyOf(nx, ny);
+      if (visited.has(k) || !walkable(r, nx, ny)) continue;
+      visited.add(k);
+      prev[k] = cur;
+      if (goalSet.has(k)) {
+        // reconstruct path
+        const out = [];
+        let node = { x: nx, y: ny };
+        while (keyOf(node.x, node.y) !== startK) {
+          out.unshift(node);
+          node = prev[keyOf(node.x, node.y)];
+        }
+        return out;
+      }
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return null;
+}
+
+// Walkable neighbours of a (solid) interactable, used as goal tiles.
+function neighborGoals(r, x, y) {
+  return [[0, -1], [0, 1], [-1, 0], [1, 0]]
+    .map(([dx, dy]) => ({ x: x + dx, y: y + dy }))
+    .filter((g) => walkable(r, g.x, g.y));
+}
+
+// Build a movement path to `goals`, remembering any pending door/action.
+function navigate(goals, pending) {
+  const r = room();
+  const moving = path.length > 0;
+  const start = moving ? path[0] : { x: player.gx, y: player.gy };
+  const bp = bfs(r, start.x, start.y, goals);
+  if (!bp) return false;                    // unreachable: ignore the tap
+  pendingAction = pending.action || null;
+  pendingDoor   = pending.door   || null;
+  // If mid-step, finish reaching the tile we're already walking toward.
+  path = (moving ? [path[0]] : []).concat(bp);
+  if (path.length === 0) onArrive();         // already standing on the goal
+  return true;
+}
+
+function faceToward(o) {
+  const dx = o.gx - player.gx, dy = o.gy - player.gy;
+  if (Math.abs(dx) > Math.abs(dy)) player.dir = dx > 0 ? "right" : "left";
+  else player.dir = dy > 0 ? "down" : "up";
+}
+
+/* ---------- Arrival: fire whatever the tap queued up ---------- */
+function onArrive() {
+  if (pendingAction) {
+    const o = pendingAction; pendingAction = null;
+    faceToward(o);
+    doAction(o);
+  }
+  if (pendingDoor) {
+    const d = pendingDoor; pendingDoor = null;
+    loadRoom(d.to, d.atGx, d.atGy);
+  }
+}
+
+/* ---------- Interactions ---------- */
+function doAction(o) {
+  switch (o.action) {
+    case "class":  return actClass();
+    case "forage": return actForage();
+    case "brew":   return actBrew();
+    case "sell":   return actSell();
+    case "friend": return actFriend();
+    case "sleep":  return actSleep();
+  }
+}
+
+function actClass() {
+  if (state.flags.attended) { startDialogue(DIALOGUE.teacher_repeat); return; }
+  state.flags.attended = true;
+  state.knownRecipes[RECIPE.id] = true;
+  startDialogue(DIALOGUE.teacher_learn);
+}
+
+function actForage() {
+  state.inv.moonbell += 1;
+  toast("Foraged a Moonbell.");
+}
+
+function actBrew() {
+  if (!state.knownRecipes[RECIPE.id]) {
+    toast("You don't know any recipes yet — attend class first!");
+    return;
+  }
+  // check ingredients
+  for (const id in RECIPE.needs) {
+    if ((state.inv[id] || 0) < RECIPE.needs[id]) {
+      toast("You need a Moonbell to brew the Calm Tonic.");
+      return;
+    }
+  }
+  for (const id in RECIPE.needs) state.inv[id] -= RECIPE.needs[id];
+  state.inv[RECIPE.makes] += 1;
+  state.flags.brewed = true;
+  toast("Brewed a Moonlit Calm Tonic!");
+}
+
+function actSell() {
+  const id = "moonlit_calm_tonic";
+  if ((state.inv[id] || 0) <= 0) { startDialogue(DIALOGUE.merchant_empty); return; }
+  state.inv[id] -= 1;
+  state.coin += ITEMS[id].sell;
+  state.flags.sold = true;
+  startDialogue(DIALOGUE.merchant_sell);
+}
+
+function actFriend() {
+  const first = !state.flags.metFriend;
+  state.flags.metFriend = true;
+  state.friendship += 1;
+  startDialogue(first ? DIALOGUE.friend_first : DIALOGUE.friend_again);
+}
+
+function actSleep() {
+  state.gameOver = true;
+}
+
+/* ---------- Objective hint (gentle, cozy guidance) ---------- */
+function hintText() {
+  const f = state.flags, inv = state.inv;
+  if (!f.attended)                      return "Attend class: Classroom (north door).";
+  if (inv.moonbell === 0 && inv.moonlit_calm_tonic === 0)
+                                        return "Forage a Moonbell: Greenhouse (east door).";
+  if (inv.moonbell > 0 && inv.moonlit_calm_tonic === 0)
+                                        return "Brew it at the Cauldron in your Dorm.";
+  if (inv.moonlit_calm_tonic > 0)       return "Sell the tonic: Village market (west door).";
+  if (f.sold && !f.metFriend)           return "Say hi to Robin in the hallway.";
+  return "Head home and sleep to end the day.";
+}
+
+/* ============================================================================
+   INPUT — one tap handler for the whole game.
+   ============================================================================ */
+onMousePress(() => {
+  const m = mousePos();
+
+  if (state.gameOver) { resetGame(); return; }        // tap summary -> replay
+  if (dialogue) {                                      // tap advances dialogue
+    dialogue.idx += 1;
+    if (dialogue.idx >= dialogue.lines.length) dialogue = null;
+    return;
+  }
+  if (m.y < ORIGIN_Y) return;                          // ignore taps on the HUD
+
+  const gx = Math.floor(m.x / TILE);
+  const gy = Math.floor((m.y - ORIGIN_Y) / TILE);
+  if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return;
+
+  const r = room();
+
+  // 1) tapped an NPC / object -> walk adjacent, then interact
+  const obj = interAt(r, gx, gy);
+  if (obj) {
+    const goals = neighborGoals(r, gx, gy);
+    if (goals.length) navigate(goals, { action: obj });
+    return;
+  }
+  // 2) tapped a door -> walk onto it, then change rooms
+  const door = doorAt(r, gx, gy);
+  if (door) { navigate([{ x: gx, y: gy }], { door }); return; }
+  // 3) tapped open floor -> just walk there
+  if (walkable(r, gx, gy)) navigate([{ x: gx, y: gy }], {});
+});
+
+/* ============================================================================
+   MOVEMENT — advance the player along the current path each frame.
+   ============================================================================ */
+onUpdate(() => {
+  if (state.gameOver || dialogue || path.length === 0) return;
+  const t = path[0];
+  const tx = cx(t.x), ty = cy(t.y);
+  const dx = tx - player.px, dy = ty - player.py;
+  const len = Math.hypot(dx, dy);
+  const step = SPEED * dt();
+  if (len <= step || len === 0) {
+    player.px = tx; player.py = ty;
+    player.gx = t.x; player.gy = t.y;
+    path.shift();
+    if (path.length === 0) onArrive();
+  } else {
+    const nx = dx / len, ny = dy / len;
+    player.px += nx * step;
+    player.py += ny * step;
+    if (Math.abs(nx) > Math.abs(ny)) player.dir = nx > 0 ? "right" : "left";
+    else player.dir = ny > 0 ? "down" : "up";
+  }
+});
+
+/* ============================================================================
+   RENDERING — drawn every frame from game state with Kaboom primitives.
+   (Swap any drawRect below for drawSprite to drop in pixel-art PNGs.)
+   ============================================================================ */
+const col = (a, mul = 1) => rgb(a[0] * mul, a[1] * mul, a[2] * mul);
+const pulse = () => 0.5 + 0.5 * Math.sin(time() * 4);
+
+onDraw(() => {
+  const r = room();
+
+  // --- floor + walls ---
+  for (let y = 0; y < GH; y++) {
+    for (let x = 0; x < GW; x++) {
+      const isWall = r.grid[y][x] === "#";
+      const shade = ((x + y) % 2 === 0) ? 1 : 0.92;     // subtle checker
+      drawRect({
+        pos: vec2(x * TILE, ORIGIN_Y + y * TILE),
+        width: TILE, height: TILE,
+        color: isWall ? col(r.floor, 0.45) : col(r.floor, shade),
+      });
+    }
+  }
+
+  // --- doors (walkable; labelled with destination) ---
+  for (const d of r.doors) {
+    drawRect({
+      pos: vec2(d.gx * TILE, ORIGIN_Y + d.gy * TILE),
+      width: TILE, height: TILE,
+      color: rgb(95, 82, 145),
+      outline: { color: rgb(150, 135, 210), width: 1 + pulse() * 1.5 },
+    });
+    drawText({
+      text: d.label, pos: vec2(cx(d.gx), cy(d.gy)),
+      size: 8, color: rgb(235, 230, 255), anchor: "center", width: TILE,
+    });
+  }
+
+  // --- interactables (NPCs / props) with a gentle "tappable" glow ---
+  for (const o of r.inters) {
+    const p = pulse();
+    drawRect({
+      pos: vec2(o.gx * TILE + 4, ORIGIN_Y + o.gy * TILE + 4),
+      width: TILE - 8, height: TILE - 8,
+      color: col(o.color),
+      outline: { color: rgb(255, 255, 255), width: 1 + p * 2 },
+      radius: 4,
+    });
+    drawText({
+      text: o.name, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1),
+      size: 8, color: rgb(230, 225, 245), anchor: "center", width: TILE * 2.4,
+    });
+  }
+
+  // --- breadcrumb dots showing the planned route ---
+  for (const t of path) {
+    drawCircle({ pos: vec2(cx(t.x), cy(t.y)), radius: 3, color: rgb(255, 240, 180), opacity: 0.5 });
+  }
+
+  // --- player (placeholder rect + facing nub) ---
+  drawRect({
+    pos: vec2(player.px, player.py), width: 22, height: 22,
+    color: rgb(255, 210, 120), anchor: "center", radius: 4,
+    outline: { color: rgb(120, 80, 30), width: 2 },
+  });
+  const nub = { up: [0, -9], down: [0, 9], left: [-9, 0], right: [9, 0] }[player.dir];
+  drawRect({
+    pos: vec2(player.px + nub[0], player.py + nub[1]), width: 7, height: 7,
+    color: rgb(120, 80, 30), anchor: "center", radius: 2,
+  });
+
+  drawHUD(r);
+  if (dialogue)       drawDialogue();
+  else if (toastMsg)  drawToast();
+  if (state.gameOver) drawSummary();
+});
+
+/* ---------- HUD: room name, coin, friendship, inventory, hint ---------- */
+function drawHUD(r) {
+  // top strip
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: ORIGIN_Y, color: rgb(26, 22, 38) });
+  drawText({ text: r.name, pos: vec2(8, 6), size: 12, color: rgb(225, 215, 250) });
+  drawText({
+    text: "Coin " + state.coin + "    Friend " + state.friendship + "    Day 1",
+    pos: vec2(8, 24), size: 10, color: rgb(255, 225, 150),
+  });
+
+  // inventory chips (only items you actually hold)
+  let ix = 8;
+  let any = false;
+  for (const id in state.inv) {
+    if (state.inv[id] <= 0) continue;
+    any = true;
+    const it = ITEMS[id];
+    drawRect({ pos: vec2(ix, 40), width: 12, height: 12, color: col(it.color), radius: 2 });
+    const label = it.name + " x" + state.inv[id];
+    drawText({ text: label, pos: vec2(ix + 15, 41), size: 9, color: rgb(220, 220, 235) });
+    ix += 15 + label.length * 5.4 + 12;
+  }
+  if (!any) drawText({ text: "Bag: empty", pos: vec2(8, 41), size: 9, color: rgb(150, 150, 170) });
+
+  // objective hint along the bottom
+  drawRect({ pos: vec2(0, CANVAS_H - 64), width: CANVAS_W, height: 64, color: rgb(26, 22, 38) });
+  drawText({
+    text: "> " + hintText(), pos: vec2(8, CANVAS_H - 56),
+    size: 11, color: rgb(200, 220, 255), width: CANVAS_W - 16,
+  });
+  drawText({
+    text: "Tap to move · tap a glowing object to use it",
+    pos: vec2(8, CANVAS_H - 22), size: 9, color: rgb(140, 140, 165),
+  });
+}
+
+/* ---------- Dialogue box ---------- */
+function drawDialogue() {
+  const line = dialogue.lines[dialogue.idx];
+  const boxY = CANVAS_H - 150;
+  drawRect({ pos: vec2(10, boxY), width: CANVAS_W - 20, height: 92, color: rgb(18, 16, 28), opacity: 0.96, radius: 8,
+             outline: { color: rgb(140, 120, 200), width: 2 } });
+  drawText({ text: line.s, pos: vec2(24, boxY + 12), size: 12, color: rgb(255, 210, 140) });
+  drawText({ text: line.t, pos: vec2(24, boxY + 34), size: 11, color: rgb(232, 230, 245), width: CANVAS_W - 56 });
+  drawText({ text: "(tap to continue)", pos: vec2(CANVAS_W - 24, boxY + 76), size: 9,
+             color: rgb(150, 150, 175), anchor: "right" });
+}
+
+/* ---------- Transient toast ---------- */
+function drawToast() {
+  if (time() > toastMsg.until) { toastMsg = null; return; }
+  const fade = Math.min(1, (toastMsg.until - time()) / 0.5);
+  drawRect({ pos: vec2(CANVAS_W / 2, CANVAS_H - 120), width: CANVAS_W - 40, height: 30,
+             color: rgb(18, 16, 28), opacity: 0.9 * fade, radius: 8, anchor: "center" });
+  drawText({ text: toastMsg.text, pos: vec2(CANVAS_W / 2, CANVAS_H - 120), size: 11,
+             color: rgb(255, 240, 200), anchor: "center", opacity: fade });
+}
+
+/* ---------- Day-complete summary ---------- */
+function drawSummary() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(10, 8, 18), opacity: 0.92 });
+  const cxm = CANVAS_W / 2;
+  drawText({ text: "Day Complete!", pos: vec2(cxm, 120), size: 22, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: "You drifted off under a quiet moon.", pos: vec2(cxm, 152), size: 11,
+             color: rgb(200, 200, 220), anchor: "center" });
+
+  const lines = [
+    "Recipe learned:  " + (state.knownRecipes[RECIPE.id] ? RECIPE.name : "none"),
+    "Potion brewed:   " + (state.flags.brewed ? "yes" : "no"),
+    "Coin earned:     " + state.coin,
+    "Friendship:      " + state.friendship + (state.flags.metFriend ? "  (met Robin)" : ""),
+  ];
+  lines.forEach((t, i) => {
+    drawText({ text: t, pos: vec2(cxm, 210 + i * 26), size: 12, color: rgb(225, 225, 240), anchor: "center" });
+  });
+
+  drawText({ text: "Tap to start a fresh day", pos: vec2(cxm, 360), size: 12,
+             color: rgb(170, 200, 255), anchor: "center" });
+}
+
+/* ---------- Go! ---------- */
+resetGame();
+</script>
+</body>
+</html>
