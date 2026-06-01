@@ -216,6 +216,25 @@ const ROOMS = {
   },
 };
 
+/* ---------- ART ASSETS (drop pixel-art PNGs in here) ----------
+   Paste a base64 data URI as the value to replace a placeholder rectangle —
+   that's the ONLY change needed per asset. Keys left as "" keep their
+   placeholder. Expected size: 32x32 unless noted. The renderer draws the
+   sprite when present and falls back to the colored placeholder otherwise.
+
+   Keys the game looks for:
+     Tiles  : floor_dorm, floor_hallway, floor_classroom, floor_greenhouse,
+              floor_village, wall_dorm, wall_hallway, wall_classroom,
+              wall_greenhouse, wall_village, door
+     People : player (32x32; later: player_up/down/left/right for facing),
+              teacher, shop, friend
+     Props  : bed, cauldron, herb, cauldron_big (96-128px, brewing screen)
+     Items  : item_lavender, item_spring_water, item_lavender_calm_tonic
+*/
+const ASSETS = {
+  // e.g.  player: "data:image/png;base64,iVBORw0KGgo...",
+};
+
 /* ============================================================================
    ENGINE SETUP — Kaboom is used as a scaling canvas + input + game loop.
    All game state is plain JS; we draw everything ourselves with primitives.
@@ -230,6 +249,16 @@ kaboom({
   crisp: true,          // keep pixels sharp for future pixel-art
   global: true,
 });
+
+/* ---------- Sprite loader ----------
+   Loads every non-empty ASSETS entry; `ready(key)` is true once it's usable,
+   so draws can safely choose sprite-vs-placeholder each frame. */
+const READY = new Set();
+for (const k in ASSETS) {
+  if (!ASSETS[k]) continue;
+  loadSprite(k, ASSETS[k]).then(() => READY.add(k)).catch(() => {});
+}
+const ready = (k) => READY.has(k);
 
 /* ---------- Mutable game state ---------- */
 let state;
@@ -561,27 +590,31 @@ const pulse = () => 0.5 + 0.5 * Math.sin(time() * 4);
 onDraw(() => {
   const r = room();
 
-  // --- floor + walls ---
+  // --- floor + walls (sprite if supplied, else colored placeholder) ---
+  const floorKey = "floor_" + state.roomId, wallKey = "wall_" + state.roomId;
   for (let y = 0; y < GH; y++) {
     for (let x = 0; x < GW; x++) {
       const isWall = r.grid[y][x] === "#";
-      const shade = ((x + y) % 2 === 0) ? 1 : 0.92;     // subtle checker
-      drawRect({
-        pos: vec2(x * TILE, ORIGIN_Y + y * TILE),
-        width: TILE, height: TILE,
-        color: isWall ? col(r.floor, 0.45) : col(r.floor, shade),
-      });
+      const key = isWall ? wallKey : floorKey;
+      const pos = vec2(x * TILE, ORIGIN_Y + y * TILE);
+      if (ready(key)) {
+        drawSprite({ sprite: key, pos, width: TILE, height: TILE });
+      } else {
+        const shade = ((x + y) % 2 === 0) ? 1 : 0.92;   // subtle checker
+        drawRect({ pos, width: TILE, height: TILE, color: isWall ? col(r.floor, 0.45) : col(r.floor, shade) });
+      }
     }
   }
 
   // --- doors (walkable; labelled with destination) ---
   for (const d of r.doors) {
-    drawRect({
-      pos: vec2(d.gx * TILE, ORIGIN_Y + d.gy * TILE),
-      width: TILE, height: TILE,
-      color: rgb(95, 82, 145),
-      outline: { color: rgb(150, 135, 210), width: 1 + pulse() * 1.5 },
-    });
+    const pos = vec2(d.gx * TILE, ORIGIN_Y + d.gy * TILE);
+    if (ready("door")) {
+      drawSprite({ sprite: "door", pos, width: TILE, height: TILE });
+    } else {
+      drawRect({ pos, width: TILE, height: TILE, color: rgb(95, 82, 145),
+                 outline: { color: rgb(150, 135, 210), width: 1 + pulse() * 1.5 } });
+    }
     drawText({
       text: d.label, pos: vec2(cx(d.gx), cy(d.gy)),
       size: 8, color: rgb(235, 230, 255), anchor: "center", width: TILE,
@@ -591,30 +624,42 @@ onDraw(() => {
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
   for (const o of r.inters) {
     const p = pulse();
-    drawRect({
-      pos: vec2(o.gx * TILE + 4, ORIGIN_Y + o.gy * TILE + 4),
-      width: TILE - 8, height: TILE - 8,
-      color: col(o.color),
-      outline: { color: rgb(255, 255, 255), width: 1 + p * 2 },
-      radius: 4,
-    });
+    if (ready(o.kind)) {
+      drawSprite({ sprite: o.kind, pos: vec2(o.gx * TILE, ORIGIN_Y + o.gy * TILE), width: TILE, height: TILE });
+      // subtle tappable halo
+      drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+                 color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+    } else {
+      drawRect({
+        pos: vec2(o.gx * TILE + 4, ORIGIN_Y + o.gy * TILE + 4),
+        width: TILE - 8, height: TILE - 8,
+        color: col(o.color),
+        outline: { color: rgb(255, 255, 255), width: 1 + p * 2 },
+        radius: 4,
+      });
+    }
     drawText({
       text: o.name, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1),
       size: 8, color: rgb(230, 225, 245), anchor: "center", width: TILE * 2.4,
     });
   }
 
-  // --- player (placeholder rect + facing nub) ---
-  drawRect({
-    pos: vec2(player.px, player.py), width: 22, height: 22,
-    color: rgb(255, 210, 120), anchor: "center", radius: 4,
-    outline: { color: rgb(120, 80, 30), width: 2 },
-  });
-  const nub = { up: [0, -9], down: [0, 9], left: [-9, 0], right: [9, 0] }[player.dir];
-  drawRect({
-    pos: vec2(player.px + nub[0], player.py + nub[1]), width: 7, height: 7,
-    color: rgb(120, 80, 30), anchor: "center", radius: 2,
-  });
+  // --- player (sprite if supplied, else placeholder rect + facing nub) ---
+  const pKey = ready("player_" + player.dir) ? "player_" + player.dir : (ready("player") ? "player" : null);
+  if (pKey) {
+    drawSprite({ sprite: pKey, pos: vec2(player.px, player.py), width: TILE, height: TILE, anchor: "center" });
+  } else {
+    drawRect({
+      pos: vec2(player.px, player.py), width: 22, height: 22,
+      color: rgb(255, 210, 120), anchor: "center", radius: 4,
+      outline: { color: rgb(120, 80, 30), width: 2 },
+    });
+    const nub = { up: [0, -9], down: [0, 9], left: [-9, 0], right: [9, 0] }[player.dir];
+    drawRect({
+      pos: vec2(player.px + nub[0], player.py + nub[1]), width: 7, height: 7,
+      color: rgb(120, 80, 30), anchor: "center", radius: 2,
+    });
+  }
 
   drawHUD(r);
   if (brewUI)         drawBrew();
@@ -639,8 +684,9 @@ function drawHUD(r) {
   for (const id in state.inv) {
     if (state.inv[id] <= 0) continue;
     any = true;
-    const it = ITEMS[id];
-    drawRect({ pos: vec2(ix, 40), width: 12, height: 12, color: col(it.color), radius: 2 });
+    const it = ITEMS[id], ikey = "item_" + id;
+    if (ready(ikey)) drawSprite({ sprite: ikey, pos: vec2(ix, 38), width: 16, height: 16 });
+    else drawRect({ pos: vec2(ix, 40), width: 12, height: 12, color: col(it.color), radius: 2 });
     const label = it.name + " x" + state.inv[id];
     drawText({ text: label, pos: vec2(ix + 15, 41), size: 9, color: rgb(220, 220, 235) });
     ix += 15 + label.length * 5.4 + 12;
@@ -761,9 +807,14 @@ function drawBrew() {
   const cxm = CANVAS_W / 2;
   drawText({ text: "The Cauldron", pos: vec2(cxm, 18), size: 16, color: rgb(225, 215, 250), anchor: "center" });
 
-  // cauldron body + bubbling liquid
-  drawCircle({ pos: vec2(cxm, 110), radius: 56, color: rgb(34, 30, 46) });
-  drawCircle({ pos: vec2(cxm, 104), radius: 44, color: brewLiquidColor() });
+  // cauldron body + bubbling liquid (sprite if supplied, else drawn pot)
+  if (ready("cauldron_big")) {
+    drawSprite({ sprite: "cauldron_big", pos: vec2(cxm, 104), width: 120, height: 120, anchor: "center" });
+    drawCircle({ pos: vec2(cxm, 96), radius: 30, color: brewLiquidColor(), opacity: 0.85 });
+  } else {
+    drawCircle({ pos: vec2(cxm, 110), radius: 56, color: rgb(34, 30, 46) });
+    drawCircle({ pos: vec2(cxm, 104), radius: 44, color: brewLiquidColor() });
+  }
   for (let i = 0; i < brewUI.contents.length; i++) {       // little bubbles per ingredient
     const a = time() * 2 + i * 1.7;
     drawCircle({ pos: vec2(cxm + Math.sin(a) * 22, 100 - ((time() * 30 + i * 25) % 40)),
