@@ -30,8 +30,9 @@
    up to it and interact. No D-pad. Mouse click works the same on desktop.
 
    The 7-step loop:
-     1. Wake in the dorm.   2. Attend class (learn a recipe).
-     3. Forage a Moonbell.  4. Brew the tonic at your cauldron.
+     1. Wake in the dorm.   2. Attend the herbalism class (learn the recipe).
+     3. Forage Lavender in the greenhouse.
+     4. Brew the tonic at the classroom cauldron (dedicated brewing screen).
      5. Sell it in the village.   6. Greet a friend in the hall.
      7. Sleep -> day-complete summary.
 
@@ -51,43 +52,67 @@ const CANVAS_W = GW * TILE;             // 384
 const CANVAS_H = ORIGIN_Y + GH * TILE + 64;  // 64 + 384 + 64 = 512
 const SPEED    = 150;       // player walk speed in px/sec
 
-/* ---------- Items (herbs + potions) ----------
-   kind: "herb" or "potion". sell: coin value when sold. color: [r,g,b]. */
+/* ---------- Items (herbs, brewing bases + potions) ----------
+   kind: "herb" | "base" | "potion". sell: coin value. color: [r,g,b].
+   Correspondences are real-world traditional herbalism / folk magic. */
 const ITEMS = {
-  moonbell: {
-    name: "Moonbell",
+  lavender: {
+    name: "Lavender",
     kind: "herb",
-    color: [150, 220, 255],
-    lore: "A pale lunar flower, best picked under a waxing moon.",
+    color: [150, 130, 215],
+    botanical: "Lavandula angustifolia",
+    element: "Air",
+    planet: "Mercury",
+    lore: "Calming and cleansing. Eases anxious thoughts and invites restful sleep.",
   },
-  moonlit_calm_tonic: {
+  spring_water: {
+    name: "Spring Water",
+    kind: "base",
+    color: [120, 180, 230],
+    lore: "Fresh, living water — the base of any gentle tonic.",
+  },
+  lavender_calm_tonic: {
     name: "Calm Tonic",
-    fullName: "Moonlit Calm Tonic",
+    fullName: "Lavender Calm Tonic",
     kind: "potion",
     color: [185, 145, 255],
     sell: 25,
-    lore: "A soothing brew that quiets a restless mind.",
+    lore: "A soft violet brew that quiets a restless mind.",
   },
 };
 
 /* ---------- The recipe you learn in class ----------
-   needs: ingredient ids -> quantity. makes: the produced item id. */
+   needs: ingredient ids -> quantity (matched exactly in the cauldron).
+   steps: how-to shown in the grimoire.  makes: the produced item id. */
 const RECIPE = {
-  id: "moonlit_calm_tonic",
-  name: "Moonlit Calm Tonic",
-  needs: { moonbell: 1 },
-  makes: "moonlit_calm_tonic",
+  id: "lavender_calm_tonic",
+  name: "Lavender Calm Tonic",
+  needs: { spring_water: 1, lavender: 1 },
+  makes: "lavender_calm_tonic",
+  summary: "A calming tonic drawn from lavender's airy, Mercurial nature.",
+  steps: [
+    "1. Fill the cauldron with Spring Water.",
+    "2. Add a sprig of fresh Lavender.",
+    "3. Stir gently and steep until pale violet.",
+  ],
 };
 
 /* ---------- NPC / object dialogue ---------- */
 const DIALOGUE = {
   teacher_learn: [
-    { s: "Prof. Sage", t: "Good morning! Today's lesson: the Moonlit Calm Tonic." },
-    { s: "Prof. Sage", t: "Forage a Moonbell in the greenhouse, then brew it in your dorm cauldron." },
-    { s: "You",        t: "Got it — Moonbell, then brew. Thank you, Professor!" },
+    { s: "Prof. Sage", t: "Welcome to Herbalism. Today we study Lavender, and the craft of calm." },
+    { s: "Prof. Sage", t: "Lavandula angustifolia. Its element is Air; its planet is Mercury." },
+    { s: "Prof. Sage", t: "Air and Mercury both govern the mind — thought, breath, the nervous system." },
+    { s: "Prof. Sage", t: "So lavender soothes anxious thought and quiets the body for restful sleep." },
+    { s: "Prof. Sage", t: "Traditionally it's used for peace, purification, and gentle, happy dreams." },
+    { s: "Prof. Sage", t: "We will brew a Lavender Calm Tonic. The recipe is now in your grimoire." },
+    { s: "Prof. Sage", t: "Method: fill the cauldron with spring water, add a sprig of lavender, steep until pale violet." },
+    { s: "Prof. Sage", t: "Forage fresh lavender in the greenhouse, then return to the cauldron here in class." },
+    { s: "You",        t: "Air and Mercury — calm and sleep. Water, lavender, steep. Understood!" },
   ],
   teacher_repeat: [
-    { s: "Prof. Sage", t: "You've already mastered today's lesson. Off you go!" },
+    { s: "Prof. Sage", t: "Remember: lavender is Air and Mercury — it calms the restless mind." },
+    { s: "Prof. Sage", t: "Forage a sprig, then steep it in spring water at the cauldron." },
   ],
   friend_first: [
     { s: "Robin", t: "Oh — morning! First-day jitters? You'll do great here." },
@@ -97,7 +122,7 @@ const DIALOGUE = {
     { s: "Robin", t: "Brewing already? You're a natural, honestly." },
   ],
   merchant_sell: [
-    { s: "Merchant", t: "A Moonlit Calm Tonic! Lovely work. Here's 25 coin." },
+    { s: "Merchant", t: "A Lavender Calm Tonic! I can smell the Mercury in it. Here's 25 coin." },
   ],
   merchant_empty: [
     { s: "Merchant", t: "Bring me a potion to sell and I'll pay you well." },
@@ -138,8 +163,7 @@ const ROOMS = {
       { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 10, label: "Hall v" },
     ],
     inters: [
-      { gx: 2, gy: 2, kind: "bed",      name: "Bed",      color: [90, 120, 200], action: "sleep" },
-      { gx: 9, gy: 2, kind: "cauldron", name: "Cauldron", color: [60, 165, 165], action: "brew"  },
+      { gx: 2, gy: 2, kind: "bed", name: "Bed", color: [90, 120, 200], action: "sleep" },
     ],
   },
   hallway: {
@@ -164,7 +188,8 @@ const ROOMS = {
       { gx: 5, gy: 11, to: "hallway", atGx: 5, atGy: 1, label: "Hall v" },
     ],
     inters: [
-      { gx: 6, gy: 2, kind: "teacher", name: "Prof. Sage", color: [120, 200, 120], action: "class" },
+      { gx: 6, gy: 2, kind: "teacher",  name: "Prof. Sage", color: [120, 200, 120], action: "class" },
+      { gx: 3, gy: 8, kind: "cauldron", name: "Cauldron",   color: [60, 165, 165], action: "brew"  },
     ],
   },
   greenhouse: {
@@ -175,7 +200,7 @@ const ROOMS = {
       { gx: 0, gy: 5, to: "hallway", atGx: 10, atGy: 5, label: "Hall <" },
     ],
     inters: [
-      { gx: 6, gy: 3, kind: "herb", name: "Moonbell", color: [150, 220, 255], action: "forage" },
+      { gx: 6, gy: 3, kind: "herb", name: "Lavender", color: [150, 130, 215], action: "forage" },
     ],
   },
   village: {
@@ -211,7 +236,7 @@ let state;
 function resetGame() {
   state = {
     roomId: "dorm",
-    inv: { moonbell: 0, moonlit_calm_tonic: 0 },
+    inv: { lavender: 0, lavender_calm_tonic: 0 },
     knownRecipes: {},     // recipe id -> true
     coin: 0,
     friendship: 0,
@@ -224,11 +249,12 @@ function resetGame() {
   pendingDoor = null;
   dialogue = null;       // { lines:[...], idx }
   toastMsg = null;       // { text, until }
+  brewUI = null;         // { contents:[ids], grimoireOpen, msg }
   placePlayer(5, 9, "up");
   toast("Day 1 — good morning! Tap anywhere to walk.");
 }
 
-let player, path, pendingAction, pendingDoor, dialogue, toastMsg;
+let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI;
 
 /* ---------- Tiny helpers ---------- */
 const room   = () => ROOMS[state.roomId];
@@ -362,30 +388,20 @@ function actClass() {
 }
 
 function actForage() {
-  state.inv.moonbell += 1;
-  toast("Foraged a Moonbell.");
+  state.inv.lavender += 1;
+  toast("Foraged a sprig of Lavender.");
 }
 
+// Tapping the cauldron opens the dedicated brewing screen.
 function actBrew() {
+  brewUI = { contents: [], grimoireOpen: false, msg: "Add ingredients, then Brew." };
   if (!state.knownRecipes[RECIPE.id]) {
-    toast("You don't know any recipes yet — attend class first!");
-    return;
+    brewUI.msg = "You have no recipes yet — attend class first.";
   }
-  // check ingredients
-  for (const id in RECIPE.needs) {
-    if ((state.inv[id] || 0) < RECIPE.needs[id]) {
-      toast("You need a Moonbell to brew the Calm Tonic.");
-      return;
-    }
-  }
-  for (const id in RECIPE.needs) state.inv[id] -= RECIPE.needs[id];
-  state.inv[RECIPE.makes] += 1;
-  state.flags.brewed = true;
-  toast("Brewed a Moonlit Calm Tonic!");
 }
 
 function actSell() {
-  const id = "moonlit_calm_tonic";
+  const id = "lavender_calm_tonic";
   if ((state.inv[id] || 0) <= 0) { startDialogue(DIALOGUE.merchant_empty); return; }
   state.inv[id] -= 1;
   state.coin += ITEMS[id].sell;
@@ -404,15 +420,74 @@ function actSleep() {
   state.gameOver = true;
 }
 
+/* ---------- Brewing screen logic ----------
+   Spring Water comes free from the cauldron's pantry; herbs come from your bag
+   and are returned if you empty the pot or leave, so brewing is never a loss. */
+function countMap(arr) {
+  const m = {};
+  for (const id of arr) m[id] = (m[id] || 0) + 1;
+  return m;
+}
+function sameCounts(a, b) {
+  const ka = Object.keys(a), kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => a[k] === b[k]);
+}
+
+// Ingredients you can drop into the pot right now.
+function pantry() {
+  const list = [{ id: "spring_water", n: Infinity }]; // always available at the cauldron
+  for (const id in state.inv) {
+    if (ITEMS[id].kind === "herb" && state.inv[id] > 0) list.push({ id, n: state.inv[id] });
+  }
+  return list;
+}
+
+function brewAdd(id) {
+  if (brewUI.contents.length >= 6) { brewUI.msg = "The cauldron is full."; return; }
+  if (ITEMS[id].kind === "herb") {
+    if ((state.inv[id] || 0) <= 0) return;
+    state.inv[id] -= 1;            // herbs are spent into the pot
+  }
+  brewUI.contents.push(id);
+  brewUI.msg = "Added " + ITEMS[id].name + ".";
+}
+
+function brewReturnContents() {
+  for (const id of brewUI.contents) {
+    if (ITEMS[id].kind === "herb") state.inv[id] = (state.inv[id] || 0) + 1;
+  }
+  brewUI.contents = [];
+}
+
+function brewAttempt() {
+  if (!state.knownRecipes[RECIPE.id]) { brewUI.msg = "Attend class to learn a recipe first."; return; }
+  if (brewUI.contents.length === 0) { brewUI.msg = "Add some ingredients first."; return; }
+  if (sameCounts(countMap(brewUI.contents), RECIPE.needs)) {
+    brewUI.contents = [];          // consumed (herbs already removed from bag)
+    state.inv[RECIPE.makes] += 1;
+    state.flags.brewed = true;
+    brewUI.msg = "It steeps to a pale violet — a Lavender Calm Tonic!";
+  } else {
+    brewReturnContents();          // no failure punishment — ingredients returned
+    brewUI.msg = "It fizzles softly. Check your grimoire and try again.";
+  }
+}
+
+function brewLeave() {
+  brewReturnContents();
+  brewUI = null;
+}
+
 /* ---------- Objective hint (gentle, cozy guidance) ---------- */
 function hintText() {
   const f = state.flags, inv = state.inv;
   if (!f.attended)                      return "Attend class: Classroom (north door).";
-  if (inv.moonbell === 0 && inv.moonlit_calm_tonic === 0)
-                                        return "Forage a Moonbell: Greenhouse (east door).";
-  if (inv.moonbell > 0 && inv.moonlit_calm_tonic === 0)
-                                        return "Brew it at the Cauldron in your Dorm.";
-  if (inv.moonlit_calm_tonic > 0)       return "Sell the tonic: Village market (west door).";
+  if (inv.lavender === 0 && inv.lavender_calm_tonic === 0)
+                                        return "Forage Lavender: Greenhouse (east door).";
+  if (inv.lavender > 0 && inv.lavender_calm_tonic === 0)
+                                        return "Brew at the Cauldron in the Classroom.";
+  if (inv.lavender_calm_tonic > 0)      return "Sell the tonic: Village market (west door).";
   if (f.sold && !f.metFriend)           return "Say hi to Robin in the hallway.";
   return "Head home and sleep to end the day.";
 }
@@ -429,6 +504,7 @@ onMousePress(() => {
     if (dialogue.idx >= dialogue.lines.length) dialogue = null;
     return;
   }
+  if (brewUI) { handleBrewTap(m); return; }            // brewing screen owns taps
   if (m.y < ORIGIN_Y) return;                          // ignore taps on the HUD
 
   const gx = Math.floor(m.x / TILE);
@@ -455,7 +531,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (state.gameOver || dialogue || path.length === 0) return;
+  if (state.gameOver || dialogue || brewUI || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
@@ -528,11 +604,6 @@ onDraw(() => {
     });
   }
 
-  // --- breadcrumb dots showing the planned route ---
-  for (const t of path) {
-    drawCircle({ pos: vec2(cx(t.x), cy(t.y)), radius: 3, color: rgb(255, 240, 180), opacity: 0.5 });
-  }
-
   // --- player (placeholder rect + facing nub) ---
   drawRect({
     pos: vec2(player.px, player.py), width: 22, height: 22,
@@ -546,8 +617,9 @@ onDraw(() => {
   });
 
   drawHUD(r);
+  if (brewUI)         drawBrew();
   if (dialogue)       drawDialogue();
-  else if (toastMsg)  drawToast();
+  else if (toastMsg && !brewUI) drawToast();
   if (state.gameOver) drawSummary();
 });
 
@@ -629,6 +701,126 @@ function drawSummary() {
 
   drawText({ text: "Tap to start a fresh day", pos: vec2(cxm, 360), size: 12,
              color: rgb(170, 200, 255), anchor: "center" });
+}
+
+/* ============================================================================
+   BREWING SCREEN — a dedicated view: the cauldron, an ingredient pantry you
+   tap one item at a time, a grimoire to check the method, and a Brew button.
+   ============================================================================ */
+const pointIn = (m, b) => m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h;
+
+// Build the tappable button list for the current brew screen state.
+function brewButtons() {
+  const btns = [];
+  // pantry: one button per available ingredient
+  const items = pantry();
+  items.forEach((it, i) => {
+    const col = i % 2, rowi = Math.floor(i / 2);
+    btns.push({
+      kind: "add", id: it.id,
+      x: 18 + col * 178, y: 250 + rowi * 40, w: 168, h: 32,
+      label: ITEMS[it.id].name + (it.n === Infinity ? "" : "  x" + it.n),
+      color: ITEMS[it.id].color,
+    });
+  });
+  // action bar across the bottom
+  const acts = [
+    { kind: "grimoire", label: "Grimoire", color: [150, 130, 215] },
+    { kind: "brew",     label: "Brew",     color: [120, 200, 120] },
+    { kind: "empty",    label: "Empty",    color: [180, 120, 120] },
+    { kind: "leave",    label: "Leave",    color: [120, 120, 140] },
+  ];
+  acts.forEach((a, i) => btns.push({ ...a, x: 14 + i * 90, y: 452, w: 84, h: 38 }));
+  return btns;
+}
+
+function handleBrewTap(m) {
+  if (brewUI.grimoireOpen) { brewUI.grimoireOpen = false; return; }  // tap closes grimoire
+  for (const b of brewButtons()) {
+    if (!pointIn(m, b)) continue;
+    if (b.kind === "add")      brewAdd(b.id);
+    else if (b.kind === "grimoire") brewUI.grimoireOpen = true;
+    else if (b.kind === "brew")     brewAttempt();
+    else if (b.kind === "empty")  { brewReturnContents(); brewUI.msg = "Cleared the cauldron."; }
+    else if (b.kind === "leave")    brewLeave();
+    return;
+  }
+}
+
+// Average the colors of whatever is steeping, for the liquid tint.
+function brewLiquidColor() {
+  if (brewUI.contents.length === 0) return rgb(40, 50, 70);
+  let r = 0, g = 0, b = 0;
+  for (const id of brewUI.contents) { const c = ITEMS[id].color; r += c[0]; g += c[1]; b += c[2]; }
+  const n = brewUI.contents.length;
+  return rgb(r / n, g / n, b / n);
+}
+
+function drawBrew() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(16, 14, 26), opacity: 0.97 });
+  const cxm = CANVAS_W / 2;
+  drawText({ text: "The Cauldron", pos: vec2(cxm, 18), size: 16, color: rgb(225, 215, 250), anchor: "center" });
+
+  // cauldron body + bubbling liquid
+  drawCircle({ pos: vec2(cxm, 110), radius: 56, color: rgb(34, 30, 46) });
+  drawCircle({ pos: vec2(cxm, 104), radius: 44, color: brewLiquidColor() });
+  for (let i = 0; i < brewUI.contents.length; i++) {       // little bubbles per ingredient
+    const a = time() * 2 + i * 1.7;
+    drawCircle({ pos: vec2(cxm + Math.sin(a) * 22, 100 - ((time() * 30 + i * 25) % 40)),
+                 radius: 3, color: rgb(255, 255, 255), opacity: 0.4 });
+  }
+
+  // contents readout
+  const contents = brewUI.contents.length
+    ? brewUI.contents.map((id) => ITEMS[id].name).join(", ")
+    : "(empty)";
+  drawText({ text: "In the pot: " + contents, pos: vec2(cxm, 178), size: 10,
+             color: rgb(220, 220, 240), anchor: "center", width: CANVAS_W - 24 });
+  drawText({ text: brewUI.msg || "", pos: vec2(cxm, 206), size: 10,
+             color: rgb(255, 230, 170), anchor: "center", width: CANVAS_W - 24 });
+  drawText({ text: "Add an ingredient:", pos: vec2(18, 232), size: 10, color: rgb(180, 180, 205) });
+
+  // buttons
+  for (const b of brewButtons()) {
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: col(b.color, 0.85), radius: 6,
+               outline: { color: col(b.color), width: 2 } });
+    drawText({ text: b.label, pos: vec2(b.x + b.w / 2, b.y + b.h / 2), size: 11,
+               color: rgb(20, 18, 28), anchor: "center" });
+  }
+
+  if (brewUI.grimoireOpen) drawGrimoire();
+}
+
+// The grimoire: known recipe(s) with real correspondences + the brewing method.
+function drawGrimoire() {
+  drawRect({ pos: vec2(16, 40), width: CANVAS_W - 32, height: CANVAS_H - 90,
+             color: rgb(30, 24, 40), opacity: 0.99, radius: 10,
+             outline: { color: rgb(150, 130, 215), width: 2 } });
+  const x = 32; let y = 60;
+  drawText({ text: "Grimoire", pos: vec2(x, y), size: 16, color: rgb(235, 220, 255) }); y += 30;
+
+  if (!state.knownRecipes[RECIPE.id]) {
+    drawText({ text: "Your grimoire is empty. Attend class to learn a recipe.",
+               pos: vec2(x, y), size: 11, color: rgb(210, 205, 225), width: CANVAS_W - 64 });
+  } else {
+    const lav = ITEMS.lavender;
+    drawText({ text: RECIPE.name, pos: vec2(x, y), size: 13, color: rgb(200, 175, 255) }); y += 22;
+    drawText({ text: RECIPE.summary, pos: vec2(x, y), size: 10, color: rgb(205, 205, 225),
+               width: CANVAS_W - 64 }); y += 34;
+    drawText({ text: "Key herb — Lavender (" + lav.botanical + ")", pos: vec2(x, y), size: 11,
+               color: rgb(190, 170, 235), width: CANVAS_W - 64 }); y += 18;
+    drawText({ text: "Element: " + lav.element + "    Planet: " + lav.planet,
+               pos: vec2(x, y), size: 10, color: rgb(200, 200, 220) }); y += 18;
+    drawText({ text: lav.lore, pos: vec2(x, y), size: 10, color: rgb(200, 200, 220),
+               width: CANVAS_W - 64 }); y += 38;
+    drawText({ text: "Method", pos: vec2(x, y), size: 12, color: rgb(200, 175, 255) }); y += 20;
+    for (const s of RECIPE.steps) {
+      drawText({ text: s, pos: vec2(x, y), size: 10, color: rgb(215, 215, 235), width: CANVAS_W - 64 });
+      y += 22;
+    }
+  }
+  drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 64),
+             size: 9, color: rgb(160, 160, 185), anchor: "center" });
 }
 
 /* ---------- Go! ---------- */
