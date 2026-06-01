@@ -176,10 +176,18 @@ above) and the foraging/Potions systems. Per-plant art can be generated in
 PixelLab later; until then the generic herb sprite stands in.
 
 ## Sources
-- [Cunningham's Encyclopedia of Magical Herbs (review/overview)](https://www.westernmagick.com/bookreviews/review-cunninghams-encyclopedia-of-magical-herbs-by-scott-cunningham/)
-- [Lavender — Spells8](https://spells8.com/lessons/lavender-herbal-witchcraft/) · [LearnReligions herb correspondences](https://www.learnreligions.com/magical-herb-correspondences-4064512)
-- [Basil — Flying the Hedge](https://www.flyingthehedge.com/2020/01/magical-uses-of-basil.html) · [Basil — Wiccanow](https://wiccanow.com/magickal-properties-of-basil/)
-- [Mint — Flying the Hedge](https://www.flyingthehedge.com/2020/09/magical-and-medicinal-uses-of-mint.html) · [Mint — Eclectic Witchcraft](https://eclecticwitchcraft.com/magical-correspondences-of-mint/)
-- [Mugwort — Grove and Grotto](https://www.groveandgrotto.com/blogs/articles/magickal-properties-of-mugwort) · [Mugwort — Alchemy Works](https://www.alchemy-works.com/herb_mugwort.html)
-- [Dandelion — Wiccanow](https://wiccanow.com/magickal-properties-of-dandelion/) · [Dandelion — Crystal Vaults](https://www.crystalvaults.com/magical-herbs/dandelion/)
-- [Rose — Curious Cauldron](https://curiouscauldron.com.au/blogs/sacred-space/the-magickal-properties-of-rose) · [Rose — Wiccanow](https://wiccanow.com/magickal-properties-of-rose/)
+
+Primary reference for the magical correspondences:
+- Scott Cunningham, *Cunningham's Encyclopedia of Magical Herbs*, Llewellyn
+  Publications, 1985 (ISBN 978-0875421223) — [publisher page](https://www.llewellyn.com/product.php?ean=9780875421223) ·
+  [full text on the Internet Archive](https://archive.org/details/cunninghamsencyc00cunn_0)
+
+Secondary corroboration (per-plant), used to cross-check the entries above:
+- [LearnReligions herb correspondences](https://www.learnreligions.com/magical-herb-correspondences-4064512)
+- Lavender — [Spells8](https://spells8.com/lessons/lavender-herbal-witchcraft/)
+- Basil — [Flying the Hedge](https://www.flyingthehedge.com/2020/01/magical-uses-of-basil.html) · [Wiccanow](https://wiccanow.com/magickal-properties-of-basil/)
+- Mint — [Flying the Hedge](https://www.flyingthehedge.com/2020/09/magical-and-medicinal-uses-of-mint.html) · [Eclectic Witchcraft](https://eclecticwitchcraft.com/magical-correspondences-of-mint/)
+- Mugwort — [Grove and Grotto](https://www.groveandgrotto.com/blogs/articles/magickal-properties-of-mugwort) · [Alchemy Works](https://www.alchemy-works.com/herb_mugwort.html)
+- Dandelion — [Wiccanow](https://wiccanow.com/magickal-properties-of-dandelion/) · [Crystal Vaults](https://www.crystalvaults.com/magical-herbs/dandelion/)
+- Rose — [Curious Cauldron](https://curiouscauldron.com.au/blogs/sacred-space/the-magickal-properties-of-rose) · [Wiccanow](https://wiccanow.com/magickal-properties-of-rose/)
+
