@@ -1,10 +1,17 @@
 # Herbology Curriculum — Year One
 
 > Design doc for the Herbology class and its companion, Potions & Alchemy.
-> Correspondences are grounded in real folk-magic tradition (chiefly Scott
-> Cunningham's *Encyclopedia of Magical Herbs*) and real herbalism. Sources at
-> the bottom. This is the **content plan** — it drives the in-game Book of
-> Shadows entries, the foraging table, and the Potions recipes.
+>
+> **On the correspondences:** these reflect widely-attested folk-magic tradition,
+> corroborated across multiple sources and commonly credited to Scott Cunningham's
+> *Encyclopedia of Magical Herbs*. They have **not** been verified line-by-line
+> against that book — so treat them as "the common tradition," not "exactly what
+> Cunningham printed." Where traditions genuinely disagree (e.g. mint, mugwort),
+> the entry says *sources vary* rather than asserting one answer. For a cozy game
+> grounded in real practice, that's the honest bar. Sources at the bottom.
+>
+> This is the **content plan** — it drives the in-game Book of Shadows entries,
+> the foraging table, and the Potions recipes.
 
 ## How it fits the game
 

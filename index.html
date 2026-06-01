@@ -59,17 +59,97 @@ const CHAR_KINDS  = new Set(["teacher", "shop", "friend",       // drawn as tall
 
 /* ---------- Items (herbs, brewing bases + potions) ----------
    kind: "herb" | "base" | "potion". sell: coin value. color: [r,g,b].
-   Correspondences are real-world traditional herbalism / folk magic. */
+   Herb records double as the Year-One Herbology curriculum: correspondences
+   (gender/planet/element/powers), practical herbal use, a safety note, an
+   illustrated Book of Shadows lore line, and the lesson Prof. Sage teaches.
+   See docs/curriculum-herbology.md for sources. HERB_ORDER sets the teaching
+   order; learning a herb adds its Book of Shadows page. */
 const ITEMS = {
   lavender: {
-    name: "Lavender",
-    kind: "herb",
-    color: [150, 130, 215],
+    name: "Lavender", kind: "herb", color: [150, 130, 215],
     botanical: "Lavandula angustifolia",
-    element: "Air",
-    planet: "Mercury",
+    gender: "Masculine", planet: "Mercury", element: "Air",
+    powers: ["peace", "sleep", "purification", "love"],
     uses: "Calm, peace, restful sleep",
-    lore: "Calming and cleansing. Eases anxious thoughts and invites restful sleep.",
+    herbal: "Calming tea; a sprig-stuffed sleep pillow; dried bundles as cleansing incense.",
+    safety: "",
+    lore: "Pick lavender for a quiet mind. Steep it for calm, burn it for clean air, tuck it beneath your pillow for kind dreams.",
+    lesson: [
+      { s: "Prof. Sage", t: "We begin with Lavender — Lavandula angustifolia. Element Air, planet Mercury." },
+      { s: "Prof. Sage", t: "Air and Mercury rule the mind, so lavender soothes anxious thought and gives restful sleep." },
+      { s: "Prof. Sage", t: "Steep it for calm, burn it to cleanse a room, tuck a sprig beneath your pillow for kind dreams." },
+      { s: "Prof. Sage", t: "I've noted the Lavender Calm Tonic in your book — forage a sprig and brew it in Potions." },
+    ],
+  },
+  basil: {
+    name: "Basil", kind: "herb", color: [90, 170, 90],
+    botanical: "Ocimum basilicum",
+    gender: "Masculine", planet: "Mars", element: "Fire",
+    powers: ["protection", "prosperity", "love", "courage"],
+    herbal: "Hung at the door to protect; a leaf where money passes to draw custom; culinary warmth.",
+    safety: "Culinary-safe; medicinal amounts best avoided in pregnancy.",
+    lore: "Basil guards the door and fills the purse. Keep a leaf where money passes, and a sprig where you wish to be safe.",
+    lesson: [
+      { s: "Prof. Sage", t: "Basil next — Ocimum basilicum. A herb of Mars and Fire, all forward motion." },
+      { s: "Prof. Sage", t: "Hang it at the door for protection; keep a leaf where money passes to draw prosperity." },
+      { s: "Prof. Sage", t: "Fiery herbs push: basil lends courage to love and warmth to a home." },
+    ],
+  },
+  mint: {
+    name: "Mint", kind: "herb", color: [120, 200, 150],
+    botanical: "Mentha spp.",
+    gender: "Masculine", planet: "Mercury", element: "Air",
+    powers: ["prosperity", "healing", "purification", "clarity"],
+    herbal: "A leaf in the purse for money; a settling digestive tea; a brisk purifying wash.",
+    safety: "Culinary-safe; peppermint oil may aggravate reflux in some. (Sources vary: peppermint leans Fire, spearmint Venus/Water.)",
+    lore: "Mint moves things along — coin, words, and stale air alike. Carry a leaf to keep abundance flowing.",
+    lesson: [
+      { s: "Prof. Sage", t: "Mint — quick-growing and Mercurial, an Air herb of the swift mind." },
+      { s: "Prof. Sage", t: "A leaf in the purse keeps coin flowing; a brisk tea clears the head and settles the stomach." },
+      { s: "Prof. Sage", t: "Where mint spreads, things move along — money, words, and stale air alike." },
+    ],
+  },
+  mugwort: {
+    name: "Mugwort", kind: "herb", color: [140, 150, 120],
+    botanical: "Artemisia vulgaris",
+    gender: "Feminine", planet: "Venus (lunar)", element: "Earth",
+    powers: ["prophetic dreams", "divination", "psychic power", "protection"],
+    herbal: "A dream-pillow for prophetic dreams; incense before divination; weak tea for dream recall.",
+    safety: "Avoid in pregnancy (emmenagogue); caution with ragweed allergy. Use small amounts.",
+    lore: "Mugwort lifts the veil. Burn it before the cards, or sleep upon it to dream true — but never while carrying a child.",
+    lesson: [
+      { s: "Prof. Sage", t: "Mugwort — Artemisia, named for the moon-goddess Artemis. The diviner's herb." },
+      { s: "Prof. Sage", t: "Burn it before the cards, or sleep upon it to dream true; it lifts the veil." },
+      { s: "Prof. Sage", t: "But take care — never give mugwort to one who is carrying a child." },
+    ],
+  },
+  dandelion: {
+    name: "Dandelion", kind: "herb", color: [240, 210, 80],
+    botanical: "Taraxacum officinale",
+    gender: "Masculine", planet: "Jupiter", element: "Air",
+    powers: ["divination", "wishes", "luck", "spirit-calling"],
+    herbal: "Root tea to aid divination; blow the seed-clock to send a wish; nutritive spring greens.",
+    safety: "Food-safe; mild diuretic. Caution if allergic to related daisies.",
+    lore: "Dandelion answers questions and carries wishes. Brew the root to see further; blow the seeds to send your hope on the wind.",
+    lesson: [
+      { s: "Prof. Sage", t: "Dandelion — a little oracle of Jupiter and Air, sacred to Hecate." },
+      { s: "Prof. Sage", t: "Brew the root to see further; blow the seed-clock to send a wish upon the wind." },
+      { s: "Prof. Sage", t: "Its bitter greens cleanse the body, too — nothing in this plant is wasted." },
+    ],
+  },
+  rose: {
+    name: "Rose", kind: "herb", color: [225, 120, 150],
+    botanical: "Rosa spp.",
+    gender: "Feminine", planet: "Venus", element: "Water",
+    powers: ["love", "healing", "psychic power", "divination"],
+    herbal: "Petals in love and comfort magic; rosewater to anoint the brow for clearer sight; a soothing bath.",
+    safety: "Gentle; use unsprayed, food-grade petals.",
+    lore: "Rose opens the heart and the inner eye. Add petals to a bath for ease, or rosewater to your scrying for a softer sight.",
+    lesson: [
+      { s: "Prof. Sage", t: "Rose — the flower of Venus and the heart. Water, emotion, and gentle sight." },
+      { s: "Prof. Sage", t: "Petals for love and comfort; rosewater to anoint the brow and clear the inner eye." },
+      { s: "Prof. Sage", t: "A handful in the bath eases the mind as surely as any tonic." },
+    ],
   },
   spring_water: {
     name: "Spring Water",
@@ -86,6 +166,10 @@ const ITEMS = {
     lore: "A soft violet brew that quiets a restless mind.",
   },
 };
+
+// Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
+// the next one, which adds its Book of Shadows page.
+const HERB_ORDER = ["lavender", "basil", "mint", "mugwort", "dandelion", "rose"];
 
 /* ---------- The recipe you learn in class ----------
    needs: ingredient ids -> quantity (matched exactly in the cauldron).
@@ -531,6 +615,7 @@ function resetGame() {
     inv: { lavender: 0, lavender_calm_tonic: 0 },
     knownRecipes: {},     // recipe id -> true
     skills: {},           // subject id -> level (raised by attending class)
+    herbsKnown: {},       // herb id -> true (studied in Herbology)
     journal: {},          // subject id -> takeaway line (recorded on first lesson)
     coin: 0,
     friendship: 0,
@@ -549,7 +634,7 @@ function resetGame() {
   toast("Day 1 — good morning! Tap anywhere to walk.");
 }
 
-let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen;
+let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
 
 /* ---------- Tiny helpers ---------- */
 const room   = () => ROOMS[state.roomId];
@@ -679,11 +764,12 @@ function doAction(o) {
   }
 }
 
-// Attend a class. First time: grant a skill point, record the journal takeaway,
-// unlock any recipe, and play the full lesson. Later visits play a short review.
+// Attend a class. Herbology teaches one plant per visit (progressive
+// curriculum). Other classes grant a single skill + journal takeaway.
 function actClass(id) {
   const s = SUBJECTS[id];
   if (!s) return;
+  if (id === "herbology") return teachHerb();
   const first = !state.skills[id];
   if (first) {
     state.skills[id] = 1;
@@ -695,8 +781,22 @@ function actClass(id) {
   }
 }
 
-// Open the field journal (skills studied + lesson takeaways).
-function actJournal() { journalOpen = true; }
+// Herbology: teach the next unstudied plant, adding its Book of Shadows page.
+function teachHerb() {
+  const next = HERB_ORDER.find((h) => !state.herbsKnown[h]);
+  if (!next) {
+    startDialogue([{ s: "Prof. Sage", t: "You've studied all this term's plants — revisit them in your Book of Shadows." }]);
+    return;
+  }
+  state.herbsKnown[next] = true;
+  state.skills.herbology = Object.keys(state.herbsKnown).length;
+  state.journal.herbology = "Studying the garden — " + state.skills.herbology + " of " + HERB_ORDER.length + " plants learned.";
+  if (next === "lavender") state.knownRecipes[RECIPE.id] = true;
+  startDialogue(ITEMS[next].lesson);
+}
+
+// Open the Book of Shadows (overview + a page per studied herb).
+function actJournal() { journalOpen = true; bosPage = 0; }
 
 function actForage() {
   state.inv.lavender += 1;
@@ -810,7 +910,7 @@ onMousePress(() => {
   const m = mousePos();
 
   if (state.gameOver) { resetGame(); return; }        // tap summary -> replay
-  if (journalOpen) { journalOpen = false; return; }    // tap closes the journal
+  if (journalOpen) { handleBosTap(m); return; }        // Book of Shadows owns taps
   if (dialogue) {                                      // tap advances dialogue
     dialogue.idx += 1;
     if (dialogue.idx >= dialogue.lines.length) dialogue = null;
@@ -1062,30 +1162,92 @@ function drawSummary() {
 }
 
 /* ---------- Field journal: a parchment page of studies + takeaways ---------- */
-function drawJournal() {
+// The Book of Shadows is paged: page 0 is the studies overview, then one
+// illustrated page per studied herb (in HERB_ORDER). Prev/Next/Close buttons.
+function bosHerbPages() { return HERB_ORDER.filter((h) => state.herbsKnown[h]); }
+function bosTotalPages() { return 1 + bosHerbPages().length; }
+function bosButtons() {
+  const y = CANVAS_H - 90, h = 26;
+  return [
+    { id: "prev",  x: 22,             y, w: 74, h, label: "< Prev" },
+    { id: "close", x: CANVAS_W / 2 - 37, y, w: 74, h, label: "Close" },
+    { id: "next",  x: CANVAS_W - 96,  y, w: 74, h, label: "Next >" },
+  ];
+}
+function handleBosTap(m) {
+  for (const b of bosButtons()) {
+    if (!pointIn(m, b)) continue;
+    if (b.id === "close") journalOpen = false;
+    else if (b.id === "prev") bosPage = Math.max(0, bosPage - 1);
+    else if (b.id === "next") bosPage = Math.min(bosTotalPages() - 1, bosPage + 1);
+    return;
+  }
+}
+
+function drawJournal() {                       // (the Book of Shadows)
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.6 });
-  const bx = 12, by = 46, bw = CANVAS_W - 24, bh = CANVAS_H - 100;
+  const bx = 12, by = 40, bw = CANVAS_W - 24, bh = CANVAS_H - 110;
   drawRect({ pos: vec2(bx, by), width: bw, height: bh, color: rgb(58, 34, 30), radius: 12,
              outline: { color: rgb(150, 120, 60), width: 3 } });
   const px = bx + 12, py = by + 12, pw = bw - 24, ph = bh - 24;
   drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
 
-  let y = py + 14, x = px + 16;
-  drawText({ text: "Book of Shadows", pos: vec2(px + pw / 2, y), size: 20, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 30;
-  drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
-             size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 26;
+  const herbs = bosHerbPages();
+  if (bosPage > bosTotalPages() - 1) bosPage = bosTotalPages() - 1;
+  if (bosPage === 0) drawBosOverview(px, py, pw, ph);
+  else               drawHerbPage(ITEMS[herbs[bosPage - 1]], px, py, pw, ph);
 
-  for (const id in SUBJECTS) {
-    const studied = !!state.skills[id];
-    const dots = "*".repeat(state.skills[id] || 0);
-    drawText({ text: SUBJECTS[id].name + (studied ? "  " + dots : ""), pos: vec2(x, y),
-               size: 15, font: hf(), color: studied ? rgb(96, 58, 110) : rgb(150, 135, 110) }); y += 17;
-    drawText({ text: studied ? state.journal[id] : "— not yet studied —", pos: vec2(x + 6, y),
-               size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 36, lineSpacing: 1 });
-    y += (studied ? 26 : 18);
+  // page buttons
+  for (const b of bosButtons()) {
+    const on = (b.id === "prev" && bosPage > 0) || (b.id === "next" && bosPage < bosTotalPages() - 1) || b.id === "close";
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, radius: 6,
+               color: on ? rgb(176, 150, 200) : rgb(90, 80, 96), opacity: on ? 1 : 0.5,
+               outline: { color: rgb(120, 95, 150), width: 1 } });
+    drawText({ text: b.label, pos: vec2(b.x + b.w / 2, b.y + b.h / 2), size: 11, font: hf(),
+               color: rgb(30, 22, 38), anchor: "center" });
   }
-  drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 42),
-             size: 11, font: hf(), color: rgb(210, 200, 225), anchor: "center" });
+  drawText({ text: "Page " + (bosPage + 1) + " / " + bosTotalPages(), pos: vec2(CANVAS_W / 2, CANVAS_H - 50),
+             size: 10, font: hf(), color: rgb(210, 200, 225), anchor: "center" });
+}
+
+function drawBosOverview(px, py, pw, ph) {
+  let y = py + 14, x = px + 16;
+  drawText({ text: "Book of Shadows", pos: vec2(px + pw / 2, y), size: 20, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 26;
+  drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
+             size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 24;
+  drawText({ text: "Studies", pos: vec2(x, y), size: 15, font: hf(), color: rgb(96, 58, 110) }); y += 18;
+  for (const id in SUBJECTS) {
+    const lvl = state.skills[id] || 0;
+    const dots = lvl ? "  " + "*".repeat(Math.min(lvl, 6)) : "";
+    drawText({ text: SUBJECTS[id].name + dots, pos: vec2(x + 6, y), size: 13, font: hf(),
+               color: lvl ? rgb(74, 52, 34) : rgb(150, 135, 110) }); y += 17;
+  }
+  y += 6;
+  const studied = bosHerbPages().length;
+  drawText({ text: "Herbal:  " + studied + " of " + HERB_ORDER.length + " plants studied.", pos: vec2(x, y),
+             size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
+  drawText({ text: studied ? "Turn the page for your plant entries." : "Attend Herbology to fill these pages.",
+             pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
+}
+
+function drawHerbPage(h, px, py, pw, ph) {
+  const x = px + 16, INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110);
+  let y = py + 16;
+  drawText({ text: h.name, pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: HDR, anchor: "center" }); y += 24;
+  drawText({ text: h.botanical, pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 20;
+  // framed illustration
+  const iy = y + 30;
+  drawRect({ pos: vec2(px + pw / 2, iy), width: 66, height: 66, anchor: "center", color: rgb(228, 214, 180),
+             radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
+  if (ready("herb")) drawSprite({ sprite: "herb", pos: vec2(px + pw / 2, iy), width: 56, height: 56, anchor: "center" });
+  else drawRect({ pos: vec2(px + pw / 2, iy), width: 52, height: 52, anchor: "center", color: col(h.color), radius: 4 });
+  y = iy + 44;
+  drawText({ text: h.gender + "  ·  " + h.planet + "  ·  " + h.element, pos: vec2(px + pw / 2, y),
+             size: 13, font: hf(), color: HDR, anchor: "center" }); y += 22;
+  drawText({ text: "Powers:  " + h.powers.join(", "), pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 30;
+  drawText({ text: "Herbal:  " + h.herbal, pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 44;
+  if (h.safety) { drawText({ text: "Caution:  " + h.safety, pos: vec2(x, y), size: 12, font: hf(), color: rgb(150, 70, 60), width: pw - 28, lineSpacing: 2 }); y += 36; }
+  drawText({ text: '"' + h.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
 }
 
 /* ============================================================================
