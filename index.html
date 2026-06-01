@@ -51,6 +51,7 @@ const ORIGIN_Y = 64;        // HUD strip occupies the top 64 px
 const CANVAS_W = GW * TILE;             // 384
 const CANVAS_H = ORIGIN_Y + GH * TILE + 64;  // 64 + 384 + 64 = 512
 const SPEED    = 150;       // player walk speed in px/sec
+const PLAYER_DRAW = 46;     // on-screen player size in px (~1.4 tiles tall)
 
 /* ---------- Items (herbs, brewing bases + potions) ----------
    kind: "herb" | "base" | "potion". sell: coin value. color: [r,g,b].
@@ -649,9 +650,15 @@ onDraw(() => {
   }
 
   // --- player (sprite if supplied, else placeholder rect + facing nub) ---
+  // Drawn ~1.4 tiles tall and bottom-anchored so the feet rest on the tile
+  // (cozy Stardew proportion) rather than shrunk to a single 32px square.
   const pKey = ready("player_" + player.dir) ? "player_" + player.dir : (ready("player") ? "player" : null);
   if (pKey) {
-    drawSprite({ sprite: pKey, pos: vec2(player.px, player.py), width: TILE, height: TILE, anchor: "center" });
+    drawSprite({
+      sprite: pKey, anchor: "bot",
+      pos: vec2(player.px, player.py + TILE * 0.42),
+      width: PLAYER_DRAW, height: PLAYER_DRAW,
+    });
   } else {
     drawRect({
       pos: vec2(player.px, player.py), width: 22, height: 22,
