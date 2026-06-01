@@ -168,6 +168,15 @@ const ROOMS = {
     inters: [
       { gx: 2, gy: 2, kind: "bed", name: "Bed", color: [90, 120, 200], action: "sleep" },
     ],
+    // decor: non-interactive props. solid:true blocks walking (default);
+    // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
+    decor: [
+      { gx: 9, gy: 1, kind: "bookshelf" },
+      { gx: 1, gy: 8, kind: "desk" },
+      { gx: 9, gy: 9, kind: "telescope" },
+      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 40 },
+    ],
   },
   hallway: {
     name: "Dorm Hallway",
@@ -182,6 +191,12 @@ const ROOMS = {
     inters: [
       { gx: 7, gy: 6, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
     ],
+    decor: [
+      { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
+      { gx: 10, gy: 1,  kind: "lantern", size: 26 },
+      { gx: 10, gy: 10, kind: "barrel" },
+      { gx: 5,  gy: 9,  kind: "rug", solid: false, flat: true, size: 40 },
+    ],
   },
   classroom: {
     name: "Herbalism Class",
@@ -194,6 +209,12 @@ const ROOMS = {
       { gx: 6, gy: 2, kind: "teacher",  name: "Prof. Sage", color: [120, 200, 120], action: "class" },
       { gx: 3, gy: 8, kind: "cauldron", name: "Cauldron",   color: [60, 165, 165], action: "brew"  },
     ],
+    decor: [
+      { gx: 9, gy: 1, kind: "bookshelf" },
+      { gx: 1, gy: 2, kind: "desk" },
+      { gx: 9, gy: 8, kind: "mortar", size: 32 },
+      { gx: 1, gy: 8, kind: "pots" },
+    ],
   },
   greenhouse: {
     name: "Greenhouse",
@@ -205,6 +226,12 @@ const ROOMS = {
     inters: [
       { gx: 6, gy: 3, kind: "herb", name: "Lavender", color: [150, 130, 215], action: "forage" },
     ],
+    decor: [
+      { gx: 3, gy: 8, kind: "pots" },
+      { gx: 9, gy: 8, kind: "pots" },
+      { gx: 9, gy: 2, kind: "barrel" },
+      { gx: 2, gy: 9, kind: "lantern", size: 26 },
+    ],
   },
   village: {
     name: "Village Market",
@@ -215,6 +242,12 @@ const ROOMS = {
     ],
     inters: [
       { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "sell" },
+    ],
+    decor: [
+      { gx: 9, gy: 3, kind: "crystal_ball", size: 34 },
+      { gx: 2, gy: 8, kind: "barrel" },
+      { gx: 2, gy: 2, kind: "lantern", size: 26 },
+      { gx: 5, gy: 9, kind: "coin_pouch", solid: false, size: 22 },
     ],
   },
 };
@@ -249,6 +282,17 @@ const ASSETS = {
   item_lavender: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAB/0lEQVR42q3TzW7aQBAAYL+ETzVS24SogZTglsBCCAXCj0mIDZjFuAECNRhCfsBJQAmU1BdQDi2HXNpn2JfozW/AE/hBpvKhPce4I400e9hPq9kZinIQcbbqLcVUvXsyXtUzVzrlEAs3+QfSKU5hrv4CVZgRJxhWxK/ml8IEHtVnGDeeoJYfLG1DH7fzzEm8q8XZqi5nNLNfnIGcHYCKH8xm+RrbBkM7BdwWZ6Dkx6tWfmSWEx0zES6Zb169t4/VhQGWj26JeHhlDqsLGNafQOS6xuaWB6/Vt1tlQUbKMzT5CZxxN/Ct/xPuez9W7HbEuxbYKN4ttcZ36IuPkEOnUMleGsX0pf3XVdIXuJK+IKlkgbSka2iLU1DEMWQOatqLABdiGBdiwn/PXXFK7lsLaMt9EASZKNURKR8runvDz7wITPUDy+jZ7r8hLaVby440hDt1Dg1Zsz9r0iRFrLRq2k0zUZ4lmeOc0agNSfm0Z79n2XNErKTdtHcv5yMBzmvVzNprddDykz3sWSGB/R3idlcURXkdLX3w8w7hevuQlBBsRd4SF2Kw9VFrYdZF7jxm9OYYDstBCPEs5DoxkEY5IyoG7fcvwPu0bDtmHrXjBAmsTrtp7E95NL6XIrbBTzLCCQkZSGAx5TT2cQAn5bDhi7xzjlnh/vCaeIIb+v+w/gCQGb0PreOewgAAAABJRU5ErkJggg==",
   item_spring_water: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAC60lEQVR42qWU60+SYRjG/Tfa/NI3W3OzWW3aarEOztEUTRBPGa5EjYPEITxEgMrQFEVDPIugo8BDHlNTPISoSHjaqy3NKGZzc60Prc9Xe99akw+o6bNd27v7ue7frr3P89whIUcsWsRZZfK1cCRFn8OVsDPKkFOuKHlStH+mLA1ObQbkSVF+snYaoIgfG4kxBQuTShZE9EiQtZPCmDfi7vpz6VdRnUaD8f5N5N2KRkxMPJmSeRKgUvBUA5PJDINCgib1E7TUtyFXpCBTnuhfnk/JEbqM1kFU1XVAW9kCXW0nGKwsF7l3EuD1uHQO8bzGgMdJdOQnxkJXYwA9OZ0g9/4HFJrAStcVqLSE2mhGW/corC/KYdFrYezsh6bBAolKS8QymDrSeySMwxPZeqfccG/6KdkcXjQOOGEcmkf7mBuDng8YX/uE3mk3HghltkOh4ZGXRQbrAIaWtvF97yf2936h8e0GFDY3pdI+Dyr6l1DdvwCTYxXGlwMge4KmS+XJXc0OAk1TH7Gy/QM9q/tQj3/Gs9EdSmWTPqjHtiC1L6Oox4tWxxo4QpkrWEomg6dCod2DusVvKJnwUbCDwIOqnd+Fqs+LTEkJgt1LZgJfDV7rO1TN+KAd2YB+1gfD/G6Aap1fUenYgd75hfKyhEcAc5pmIbOvglXWj8KueVSOrAWo+NUSMvQO8M1uykv2HArkGqfA73BTQLZ2CGlVY/+UUvHmT718GHltC5Q3RawJCgxlZEtdvIYJypxVP4NMwyzyLF6IuwnI+jYhta9DbHZBavVAYPFA3DaNVEFh0EMJCYu4JOKoGiFsn4O8dx2yXgLFw9sBh1E+sY2KyS0ITHO4p2oG2XPoxY7nPLLx9D0o6HKhqGcFIusyJN0ExPZ1CC2LKLK/h9y6CK7+NWhsru1Yr+UCLU6XLigg2PlqZFd1I6dhGg/rHUjTWMHgl4ItVhNRd9jHenoBw4EcUxdvJxI0NpdMA/L77+gKOhx+A1HOD3xVf3MFAAAAAElFTkSuQmCC",
   item_lavender_calm_tonic: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAADK0lEQVR42qXU609SYRwH8PM31Jte9OZkbjlqs+wyjFkdsxXDytpRa3YhjbyXoZslJV6iLBIhpUJSU1wJmmZ5n6GS6HRaqahNlyY5E5HES6tX33Yw3drA0p7tu3POfuf5PM/OefYjiJUHi+u1xXTebwcCOVvhwyLFxP8M3k73TF0ijZb7YahODcG1YB8zQRDstXqso7vcjaUJJ1AlPg3N1QAIDu0AQRBxa8HY3AMnTTFBZyELoZB1hoLo+F7QnN04vC/AvH7dBnq1IE1z+XiWVQu5MBl3BDFI5gsgv5GD5Fg53N08V/0tN27bvFd7I1IBWVIJUi/nIyUmD/KbZRDQ143ubp6sVWleHjyWlwdPnxgmR9TRJPCpSAh8o6FIKETEmUTTdg/v/f+MBfgK6aSoh0ZReC4UohdQxqshPXcXOREPUCSphuy6Drfick1hwdcySZLauCLm5xNNS4Rl5kr1B9RqelCh6oQ6vQFKUQ0ei+ugTm9EUYYRlcr3KLxnQGhQhtYlyhSEFx8adfI+tFd+xtzXBdhGZjHYMr6c3joz3mqG0VDQi/KcLijTXoNLCZwfI86eC3F3hC/R+nwU9qEF/LT9wMLYd8z0zDnNp+avaHw6gES+0uh0l0H+KVqdtBd9NROYG1pwxG6ad4rNDsxjsmsGrYUjSIl4CpKkaKdgXfYQmtQTGGq2Y7TVjum++T/w6XezGDPYMdxsR1uxBcbcCUhjNSuAik+olU0up7vcho96uyP9Vd/wvnQajUrLcr1NNYV7kS5A3sH4zOL0TjQ+sKA+axLN2VMwKBfT9mgKXU+saFdZHbUlsD3PijRBgZkkKbazv0ynh2scqzIvv1FY0KGyor/Ihi/1M7AaZjFWMYMW5WKdWdiQO4pQf4nW5bEJ9c/QvpL2wphvdUzSZ1swUGyDRW93gIMlNgfUlGNBd54F2XEvzEe8I103CgYVHJNqyyQfHDtldsMAzP3SM3PtUI1DFV9h5nHC/t51GPSU322tmF+EQpEeb2Sff2cEZWmdkFwqxpVAmYnHOfvvLYwkKZbbJraYy76ovcSTYjEZoA/Em0iSEpMk5bI5/AI1V2bJoISdKAAAAABJRU5ErkJggg==",
+  // --- Decor (banked PixelLab objects) ---
+  bookshelf: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAuCAYAAABXuSs3AAAD10lEQVR42u2ZT2sTURTF+yFcuggVwUAV6x/Q+AcRaguNuGltLYJgg3bRRYMUFDcuKm4UEUFxH9y7cGF2okv9CH4M15FzyRlPb96beTOZNhEMHOZlMvPeb+7cd9+9LzMzfz+Df0Ajn8H3vZXB241Wpl7n6sTUXTg1IpwPwRvs8+Uz+zQp8A+bN0z+fBAcFp+klVP0H7wu6dxS0WXhNp+etIvBcZGqLkDfb1kFwffWwrN5mpQLPo3xG1xwmULwe9c7JrS/ve5kwve18ydMaH/9+GLwo/fUhO9XLiya0O51V+14eXZ2RDjfnjtnisFuL7WMieBsJ4N3WvOZDOjZpglti7Xd1QwSfeCc3heC9+C8X/v+9eWNqRT4tfl1EzvVyXFxqWnSzjnA8sItk/32/pEpBq6Q/eERVr5555K1t7YXTZUt3m42rEMc2SE7BzAeLASeZ3V8//3zZeZiBMeDsG/8xgerDI7zMfCYxTkfUsDpKmpx/NYfBxwD54HDKjHwmNVj4J/f7VazOAcoA55n8bLg6Lc2cKx4OM9oAatw0oR8/MH9rSxqEJyAHhzhVMFxT60WV6upVfIsDgjGe/iu93EYAIqBM8yenGukg6swEM6HFhLI4nGzEf09ptA4MWH8QnBcCAsdtPRNQrHrksGnMVdJBldfVZ8+fuz04OzRI9mrZZxnxME9Ork0j4nF9SI3qQU8JGRt7BTR5vHObvZAmpARmhNSHz7F4rnZIcHVUtrGLMdqBhE2FnEYFeCnBAA0/dtbnTmQVylwBfAwCH2I6Sit8sA54ehG+tpD4A9fbWT3c5HjejE2eH+4vGsMLgJXP1Z/VfjaXKUucG9d+rqPYAx5dCMsOAyHtYITviy4dxeC2UI2jE6Uvz635kwBV6troRFaxrUA8dUPigwF1/TBpxKFxXIKeM+BM+z56siHQx+bNdrg3E7r9j4hV2JITgYPqUzuUTVfiY2bDH4YuUpR/qK5ylgWn/S+ShK47o+Ecmz1W97HQsPvvfjooqFRXcbnNn5fJQkcVQwrmdCWA7cdMAFD4Lq1EAuLFJM2AHNf3KcalS2+vnI3CAFwdK7lma9LQytlVoRIZuktjjfG8q8SOKAVHCtYHeDeCITuyebQgYNjEBz52j04FiPe4ysfBUfxfCjgsJy+YhS2ZVzFT86xwXVyhcDZIQbFYDzS4rov6MHR1oelixl0dzWLJFg9x7K4n5y6y6pW0xTWFwHqEhjHi+BII7hVUQm87FZDaBlnG29Bs76idELPlQYPTaC8LYTY9WXFhYtKXvKn+a+UVPBp+uSDF/3ZP0nwENsfghyJ05HjoRAAAAAASUVORK5CYII=",
+  desk: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAuCAYAAABXuSs3AAADcUlEQVR42u2ZS2sUQRSF56cYRHAgiNEIOmIWQowhA26i42uVDCLBRQJmfC4EI7oIOioI4mMhY0RdySASg6IomIVufCzFlStFEMGNYMkpvc2t6nr1dHXIgAOHnunc7vrq1K1b1Z1SqcPPyOAOUSqVuLriIxqNpjhSOy3VLeCifX2x68ATaFJs6C939ohC0qNI6G8LDQHwmPBi7sbNQqHJ7ejgrx4/ksDoQFE5Dcd/fV2IBq5AF+V2IeDnz81K6CLdnqkNiN8/38v7A/zq+Lbc7YhrJ+9KFQV9aHtF/Hh3S+rtpTHZgdbUTm9bwqWjk9PiSfu+8MXlEdwmcIiB2/QX/MGxqri8t6KIgig9sMS36gOFqF7pU8AhpAqPASNkBf+XW3wSiqHNE/JYBDQMsYFXyyuSOLC9nBl1O06wXDh3ZmRdSnmgkdtyJE+Ni4/zFxUBHKs0tesFJ7ebt9sKOI1ATLdxv6f3Pkj4h1emU+A4T6kaDA7YVSvXip6erfJIrlNcTHDA7R7dL+EhDt0ROKBJBF7t7ZdxMVJmanBNAg/RdoKACTooVVw5TtAx04XgD4wdTIQSDPF55QTHEJFM9VOHrm1YrQhVgFcCiqHzXCZ4XRwaSpVDPuRUP3HEDblwMQf9/umZUQTmjOntVzpBbZgqlxXcN/w0CjaQ53NnE+H35zfzMhbVAb9p0kGujppEC491AQrJw9etEwmozUn8DeBUm11xdB90CPdHO2jP5DqUAkfS+8rW8eEJBZi+ExwHwZGD8xExdRrgk5Vd3nUiBb7Y3JQJXO+A/htLtstxvtBkAcfOMYrjtpTRwXXH9euWFNw2McnRkBzPCk4sHYO7nDOB6xOR4vi5EPDUApTHcVOpC3Gc/y0U/MWFerocuvYdBM6dgjg07e5cjpP0DuUCD3FcH2KXmz7Ho4CHpoq+8hEglwncFOMCty1AHU9OHSCWCnd8fbkq+soVpwgGmyj67rsGore+0cEBvW/4sFeAwBMTF+2zbdfw19WZwH1PMrb9sk1bNg4lynKdbVtLMlYVV2XR9+U+6TBZlDlVfOnCpb880h+guXO22NCHbh5rBV/OAjSMUMDxJilEWYfdJ1MbtudYiKVhOLh+w1igWc0JAnc1nNflTq9XwLtQ6ntyngrL4H+XwTz/wWODY044wX25tNTgLp4/+ZA4BBftdGsAAAAASUVORK5CYII=",
+  mortar: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACcAAAAnCAYAAACMo1E1AAAC+klEQVR42s2YS2sWMRSG+1/ERXcWN2IRRJCPYsGNYMGCIKKlKLjQKuKi4kIRUXFTvBVFENSdLuoFhepC/AEKIroXin8h8gTecCZmZjKZqf0GXiZzS545OTnJycTE1hzOaKwO9/ntmtfTh6tjBeiWlm4HuHEDdDev3ajAjROgu3DmXBKQe0MBug6qWA046f2rF0FDwDk1QoXx38dddeLYgrPf6NmDlTvBglYlcP6jhVMj32ATUEopPwNOgPyA+YnuDkxFshSAaO7QfEW2uxDftIGhqcndZWDWJ1ATjBWW2L5thy83gVFPb7BcKCkFloIbDCwHqgkMV4jBulquAkb31MHhK5z37BplgSH73oH9B0O9uYAVMCn2J8Derfzy55fLHz1gG1gKTnEvB+4fqyEaRroW0PnDV9z9S8/c5ZOrvrG6aakOTHC0lQOYtBpgso7KOydnvS7OLHrYFFiqO+vgUC84dHTfcQ/16OonL8qlYIPA0X17p+YC3Le1P16yZEl3FsFRMS8y5DUKBTaaXvRnrpGgY7gUWApO7tDZcoguw3IWTBKg4JCFSoHdO/3GizIhBDjbXic4wGS16/PLvjIqjiEBU8xLiWdAKfRQ5gxgJzhN8NZ6CBAqPDJz1p/pUqRR/OH51wogZen1rd8BjLAjONtOVijBWvFkL0BVqr/HajQmQGKennOPH5F1ef/L3Q3/Pu/GbWTBYWrrpJJGpvxGDQkQMDtjWDDro9Sx/vhJqJcB1GU9Fxw8BrSQyIIhWVdwdtAgXCYOOZoOs+dWu2z+8f1nEpKGsLKFjZUKM3FCUwxHOBBgHWRKNpw0gQmu87IpTjwsZBtoHIzjAG3DTMlK2Js6BSiLWtA2xUB94VoBu4jtB8HYvLU04xoc0PqYFq9DZPeDAvbJUWsTauURfaG0kh4MjuUNE75WE6Vgdr4dckcpZEqC5DonTbRBWdbfjK2uSmINXNPsEANtJljF/wCzPpRSDdR/2Rx0GsVxTmuDq93+2uod8baNw6LjLynM2+CHMJsuAAAAAElFTkSuQmCC",
+  pots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAAAtCAYAAAA6GuKaAAAEiklEQVR42u2Zz0tVQRTH7x+ROwNRhISKfhCYRZsoBY02hWS4SaEIISRIAqkWBYVEUAurRYtwGYSbghYR1F/QPvpTJr7X9xnOnTvn3qtPyYUPDnfezJw5nznz457zXlEcfPbZZ2B0ICBFUQTbdnh8MHQZo2s/+iJen2A79cAq7Uub16Mk0OH99xVPrwKw+mG2NuFcP5x0b326FA88PP9xM0w9GI9gBqD8LmXaU2jBMHDOQBMwdoCUjbTOAy9hpGDBVS8F2hxPR3AZGR05EVIojeEBz7+4WOo9+jJbA5awilloC6Xy6ORIRYBPjWtgAacGeX79+7Zsv3LjHLohhZak20uwjOltuxKcAYDUU6B8V5vnMYHhberWPq+U/VUW9OOPd2vQyQGvTFjeRxrBrXdZMlvnHSQNevvlXBx8bvVq5VykwN5lwHbRCllwD7qEkpIFZctQVltui+BNyneWJmNZE2gDZpWBTraG72VmxYEUqGavpz2kuYPIKbfgKh87OlROwOxpF1j7WHrW42uf5mtnIQtsyxrAAmfAw6+n10oDAhQcgsdVr/Lmw5nadXl2aqwUwVlgoCVLUxNhY7nurBowJxqxt4sHbWERAbFVctCCtcDo670haYVGLCjeZqv07stGT1Pme5OnmRz27FPbjXGWLx2vQ6evcgsO9OnBQ2Fj8ULNcAptge33369v1XS/PVmIutYmOg26RXgzNxGNe6J29UsNP5s+VQHPidpzE+6qm7G7BQ24J2rPLFNZh648ktMVnCQH3WbX0d0aYPbMkQifk9y+Qndx4mSj7szYkKurth3qFrGDJ95smfBOdfuwW0RvshwSHQz73TOs/Yo+YvXaoCVp/w66RVwGQPXUXWnB26DlcUBUJ+kKnYp5hftvRZIBQHXpW2hP0ULzwuCQJXohZ9OKQAEmNEBcaN6Gul/1FLTqgNHbzQN/t3C50u/88HAgQfB0iMV5MwKObbU1AVeCFw0AOF4XiAlgUm8V1ssyqKfGMNDZjIckgb5lBtSLODVODrrsqBiBp4TZS1mwBDU5wzYSIx9ktQDWs2e88MBlSzqyRRLiJR7RMGASQlPqm5bYJrcYk57KBFItmXgljGCMtsSjEnHR2Xq+BNlKn9z0n6xZY8hDziEKXeJ4YnguBtfbJJfAA8By6el5G+8oS5EweeoNeEgTABsWk7GozEGkrbavFTYKUgaBZQLR071yapiQUysjfbaZ3ZsJuBvHk87ZSXh5YmmYoN3maXafq/zz1WInaLaW9XRmm1TieLycZkwW3oLXwlIZ5ACxryXql4MmjLT9uREyWyT+1mKFO5pfmtJkhLoKtIxaQAL4rtBcV1b0swJZTxLI196G6g908gNkFPsLVoxpvUC8IRiPgXyT7p/1+66uJq2sqMluLnbpFIwTiaWGicPbdHPQRIM7TgL6CMZbE4h9mQSoTQGSZLeTAGVFjdA2/t1GMN5PIN+P3WrgbmU70J5uLpu2sfgO7e4NtN2bewHtgndR9HRbgF3wrsCNA3RRzOl2AN4Nu/m31Tb+vftfugefg48+/wAv6iQZlOA13wAAAABJRU5ErkJggg==",
+  rug: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAACtUlEQVR42u2ZvU5bQRCFea6U6SylDgVINKRJ5QIpEhWIDsRDEEpKFxFISKGi4hmoeACe4KJjaa1zx2d+1rHBErE0Alt7d789d3Zmd3Zn55N+hqJtB+T5/skwO/2d2kfBLyCroNbw3HuAzwc4nvx0ITz7tXs2XP24XHrm4tt0I+DzDjGoB/jydFsyfob7ggjrAh8Ovh6OBlCQD1fXJeNnIACLAGgCXw3Wvn4MoCCrCqtn7JuDQKtAjzpiVTPISFXVzlO7B3oJlgep+KeyDNqqXYUeuUEFthreMnAFXXGPEiy+98RhbtdefxU6Ah6pqzpl2J5YrNqi//vZjYS2LulBL4I7LzDuEAMogCwee+AWmn2a2ytg6bsM/Hj3x4XNYjKDK2ilMk+SMqLvuyrQe7CYjBfGPGhO1RG0p3I3sIWtJg2lNPrmPjLgpdRrgeEuUMT6eGsHaBs9mlmQ9t1uhmwWtW7Bi8/1RwscTcqLHgo6A85UThebUreyoKKFqaCrbhECI+xk6lYz3X/gTwMcpeuehWez3srAXgxeZ5RAOwv8+vxXhzX+EWkw2j1FkULFYS95KOBqHB6prIAjlbONfS9sOTXzTCrACrqyl1DH/QxYbTFHs1EqexsgAFTPdNXdnm0rgXEcyTZAatCWBS04G2dKdRLJgL2jUroJUkrbkAfjSSjQHlg875441GnZ8812NouglMHdYOqcqN5idhCVScJTGr/ZmoLyca7sKAE82Og8twDemxx1ha8G0NyhKdgsAvVg299qFSiFjuIutqNslbislO0tWckiYDRgb33Nizz4H4KtVF/jUFepXPYUAdXx/19gXeioDlEps3p1inVW5WVBu7eobStBDDz98n0j1weD8u3KlYFSE0agm7/rgOJR7cyDxIQpArz/bRLfKGW2lXd223yx+CGfN59s0Twb1N0+AAAAAElFTkSuQmCC",
+  lantern: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAlCAYAAADFniADAAACMUlEQVR42s3YsUvDQBgF8P4p0slCEYQ6WMVN6RA3a6mj7dihQRDEpUM3BVEHcZWAs2PtqKNdVNw6OikuokvByvvqOy7XxFLMXSw8Lg1t7+eXu8vFTObvr2FEUn0NA788PK+thZImTABA6VVKG6aDQuf91bn0UO3Kyr9GhdIoFdMdVwAAd3+yLW1M9dKpGOLlC+lWSE8EyvmaJVO+f7aj1qjlbFalXpyX4DxaFzC1DgF03apFhjDGJiy0ahPAS2fGNkx+EADzdsJLGBUTFbRqiY4zGcCY+joMILRxVdJhgXZJE0PpsLfuroKdbhUnoiJAiV1GQSGsEt//Fh2EmZn4uLra89S0R4Vujuqx4SRAZfkdGyu9dPL+cCGV8nIzo/xSJWJwGT96h1a2MwqFAISdAMZXXLjC8zvOUKjA4LU7lnRQ+cIY6uWyGoKZqJgNYbIoDHwTpcOcob4+HyWVhVlB8T1BOgqzkCh8xgkKAB1lXkKi+Jm7YN89Cu3gqTFqI1AY/E5RyHp1SR1HobQbsh0UOsOeHMf9zrG0i6Wcek8Ubi84JwPdBiqYgGLcovyydIYfJwqdmSgMaHyOO9DgZymxhmIHQN22N+QYFWE12DlboHicNEru9oi+eAIllfPL6jwXyedeJ4RCmsVNSWKbPIDQCWadiSKEAchEcdOXJGoMhgBGFEIME9qfWwCFYX5ZwcyHg6gceE37j1noIO55zwz+CGcPpHHPehzMjOv/vgynyNSvb4GBHJ346I1fAAAAAElFTkSuQmCC",
+  telescope: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACoAAAAqCAYAAADFw8lbAAACIUlEQVR42tXYvUoDQRAH8DyKpNJGULA5xEJQBNMI0YhYmVRiEwRBbFIkjQiCFmJhI3mBtFpqqY1WFr6CjViv/AfnGMe9D9G9nQSGxJNkf5mdnd1LrWbj4b7C7IOAb7cHFFax7r7fpPh4PHGbzW33MDwyhXUaidgYjAg67K6bwLrW3CQFAznWdo8Ji9cxoTR4d2na9VsLFAA9ne2kwdBYWBpwbyVxg9VZd9NrUwDamJpIkedbiXu92I+S1TSDAI4OGykSKIaiRvE3B5fAy9VicCgNABwDOYBjZCeZoQBWQhFYTKEXVNoTJZJrknE6NDZk86cPRhYwKKAye3lIhICFBXLmAETNMVZPcw4wbB1KICM5gwj0yljAb3WokbIegdTYSoGX7WUanIF6VeuM4rnKk5Eb9trUtLkXIkNZQIVzle4saMQ6W5wxH1BNd/BDLG1v/CyBGirfg/IA8u60E7Zpvz9fu/l6nQYCEM0bLccH9Uwvva8yKMMYx+0I2SqoPwKqTIeBYgCgVNbK3NfQopNfRGyJYbAM/cUgtIXqxQWomAUTd4V0pEPIwzBfM3cfxOdPjhj9tBCKDcFzEpLX7UEzXsdHqlakcWawP6BqAZmA+pq7bkkEjY319Unvtdi/gJRFRc1o1q6Tlb3g+3+ZlmQWmrdAMqEZR8Mo2SxaOJXXat405n6JKqFFg/31///7Y+xYQItO+iUgNvZ+a0e78YeGmNpPpvpZ2+pRGHUAAAAASUVORK5CYII=",
+  crystal_ball: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACcAAAAnCAYAAACMo1E1AAACzUlEQVR42uWYvYsTQRiH90+x9BohgiARDxHOQ+7ARoloIZhUdgd+IDYHnp0gKgiCZSo7ERFPsNFCUJsDFZHD7sAmCCJotfKM/NY3k9nN7OwmnLjwI7uZmfd99v3YzCbLGhxnj1/Mpymb9yHH37a+V+rFw/fzg5SjX6OfTjifJoEuH7rgNBMwDPtQH56O3OfnT9sTqoKcCZgcfXyzEwTyxbwQZGuAFgxnSBFEAvm682VCmu9Dsq4x4DSwaXDTABs1SixcGZgPaOG4ToYDDMOqE9VZnahZhRoFu0mAwMmYjZgt+BgoH84CJsEBZtMgOL8b24CrDchkwdmCTgUrg0uKno3croP7JyNnAVOg/i+4ECDaNXCpgGUbgsYbgZjolQHGQDXaoVi4xw9e14KLSWfj3YkeKcApeqEo1n18tLKvU/SAE6DeDWLT69dtG1FjUd5Z6OaHDy677bgAEYChVGvbHgKyn6w/0jntJF/RYMO1U/n2s9tOG71Fd4c+YIxCHS+wtaV9hY+XtwbRgPmPdzcdFGLhoNspAOtA2vRrByKw+/1jYz6i4cxktxhjV3rXi9c7AG0t+kB+TVJfK0snHJjs3VjZX/ioA/cntev9YvGjq6sueny3ud4vIMseL1ZAoSf3LjlhB8BUMNsUmeB6B/Y6ca5aqfob4tzRgdPb4TUn0sh64F5tnLRAjd7CCjhSIUjO5bhKgkLDwWIILh0MQ0orQNZZHQmMesNeU0BnAN090x1LLXWiTmOM7zhnLs7VjQgopJRih3HmptZbASfnqwt73DWOBIA0Pnp+2Yk5ipDENaDA6DuysPm36ZrBqbsUTRslxrkOwQGEuCnZEFxqagsQ0/ZjY6RHAo6bsDcjKCIW+IlycPZ5Gg1GuHGEgQDcGKQElOSPhdZi23Z89C+EoCrAJtYE4GbhZyIqWSzc1p3zdeBS/KQ9dhIiN9ej9Sj8BqfcfRtZNLb8AAAAAElFTkSuQmCC",
+  barrel: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACsAAAArCAYAAADhXXHAAAADo0lEQVR42s2ZP2sVQRTF8yEsLR4RwYUoxj+gT00XDeSJTUJUrMxDLCx8haCdRQQLUdBCBMt0VmInWOn3WjljznD2emd3ZndfNHBIfLsz9+edu3fOzltZGf5TZ+qf/DQgDvY26sOX+/XXF7OkFpvnjh0+BJlP1+tP+zejLp484er66mrU2bVJfbjYDQI85lgmdMhgCvDJ1rRTCo85CD828J+lXuw2Au5dPhNEGM02pbAoBR0PjQ0cQbm0+DcgsZT47UECjLLXPtyfhrFjA0dQTA7YV9sXImgqkx6gCmM53tbzEOBYWwBFgNRyp7KYgrQP6FDYmEFmtQ9g1334XBMB9QEOsOyTCpsD2Vazdg7NrLS0YbCph8mDQG3nZJmrNgS2vrpVBTg8YAo8qybZS63A3nULihJgOywBrmdrlyKsBaZyl9pe1zkUtA9sAIUICqE3YvLvRx7ANngFZMAUIL0EZHc/jA/xq0kWcH373rW/YAnE7vDrYCeK/ZLyfIICQtxQmE1dBcwBhsGwmkHdkaCf7+audB6A8X7CIYsWdnvzTh4sbnz+9FncWi2srUEEQ3CvbgmGe7SkUrCIg9jZmQUsgbEVsmmn2hVh2+TB4m/CslwQk/GzYAHIAW9fvwnCZ5DXP0thCczWRUgFRawsWEyiwHd3HtSfP74P8jpACSzdVgoSOn3qfHb7ik88gQELPXr4OAAj0z++fQkApcK8XC0LqaDFsMgEl5+wFIIRvkQc70EijvbpYlgFhiysJ4VKSSEVtBiW1lB7I401oderaSdQSgSE0M8BOBosJgwmfL7R2BaZEUgBusSVg7xeOwoss9v2pKeE/5AtLwitEBoP9sgWMrMeLK61tS4LqaCDYNliUmWQC4vAfWBpT4tgMYATdZVBKSw+I6itWcBi48j2tKgxhaVR8WDDu38PWHVa1swUvynQC2Awg6ZgvTpVWGsNU7CYq/Q9LMBi16IP8ADaYO19hKXT4m+FxTzowzeu3CqDxQCIRoMnJ0NgWQIKq5AELYWNwOpt6W8pZqoUVl9/LGQf0HgWq8AKDWmZ2Hcw73PKs4UGtN8RErNoXRJtI0TLp/IclwdJUG7Fgw7mYFjYGRRcYa0Am7pmbSHFrA8+9uQ5AupOjUsXtCfNoi2P0Q6UCasqcVoNW1hN4hx8gxj9qF4zrC6LnpTXrfjexS1ctQzQRodgIADokY82eXtoQVj9LuJYv2JSeHuqomdWbPz/5Zd4y/yG8TfRLZZYoXGVnQAAAABJRU5ErkJggg==",
+  coin_pouch: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAiCAYAAAA6RwvCAAACQklEQVR42u2XPUsDQRCG8yNMZxEigoEo+FUYJIWgCKYUgpbmCos0YmVnETtBUVAs7ARrW1stbGwsBAt/gbWVxck7+C6Tvd27S9wkTRZe9tiveXZ2du6uUBiXwZU4RcMDOFif82oYUMbYXVT3ygEVFqK9WROlQUA3rQ2pL3drwWEEIMsTNgwEGCgUTBdEc3kmIR8AFcIzssjJ1oIYalRK8df9jgHAM9owxjYeEkSM0BBq7BY1IN4u9kwfQNMgIMzpB0YmPx63RDC4Wi6LQTyz5nNoEHP/GZyLkxNGz53tuNOsGwANQaHfBUGQPDBiHAthQQadXgQwUW0+fjqLxDsuEA3jgsgCSWREG0TDQIRxgUA+iFwgdDcM+GAowHxeH2bCuK56TyCEsYF00gIM2n0wLohcIDh/G0YDud4p6CeMz3AvIALDgTaIBiIE3zt5QJh3erq+Oj+4FicMrze9glyDo8IYQubyRqO6FIsqpdgH8nG7Jvp5b4v0YgShVzSIzysJCEzk4tBstRuGEOjDu+TlfEWeUSNH8JgIw5ziA3F+JGEwAfSOrYHiGQ0LCOYaHTP6tmmQzK80LPBw1EgY4YTidNG027nDFbxs7+u7FROv9qeMsBP2YTcaEgI4rjZ3q0HQ/q/vDP0yo2sJgmOBcUoFmoEBQBAIe9eIFXqGUa6V8htRCA6iDQLm+/XU9FswYQrOF0GGIKV0nOA6M4gByOv7dxvCFu12DUEQncgIOxCQLEjcJu0xZtyh/9jawToSiHEZRfkFfVg7xAC4hQ8AAAAASUVORK5CYII=",
 };
 
 /* ============================================================================
@@ -308,6 +352,7 @@ const cy     = (gy) => ORIGIN_Y + gy * TILE + TILE / 2;
 const keyOf  = (x, y) => x + "," + y;
 const doorAt = (r, x, y) => r.doors.find((d) => d.gx === x && d.gy === y);
 const interAt = (r, x, y) => r.inters.find((o) => o.gx === x && o.gy === y);
+const decorAt = (r, x, y) => (r.decor || []).find((o) => o.gx === x && o.gy === y);
 
 function placePlayer(gx, gy, dir) {
   player.gx = gx; player.gy = gy;
@@ -335,6 +380,8 @@ function walkable(r, x, y) {
   if (doorAt(r, x, y)) return true;        // doors are always walkable
   if (r.grid[y][x] === "#") return false;  // walls block
   if (interAt(r, x, y)) return false;      // props/NPCs are solid
+  const dc = decorAt(r, x, y);             // decor blocks unless solid:false
+  if (dc && dc.solid !== false) return false;
   return true;
 }
 
@@ -635,6 +682,17 @@ onDraw(() => {
       text: d.label, pos: vec2(cx(d.gx), cy(d.gy)),
       size: 8, color: rgb(235, 230, 255), anchor: "center", width: TILE,
     });
+  }
+
+  // --- decor (non-interactive). flat lies on the floor; others stand up ---
+  for (const o of (r.decor || [])) {
+    if (!ready(o.kind)) continue;
+    const s = o.size || PROP_DRAW;
+    if (o.flat) {
+      drawSprite({ sprite: o.kind, anchor: "center", pos: vec2(cx(o.gx), cy(o.gy)), width: s, height: s });
+    } else {
+      drawSprite({ sprite: o.kind, anchor: "bot", pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: s, height: s });
+    }
   }
 
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
