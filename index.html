@@ -171,6 +171,12 @@ const ITEMS = {
 // the next one, which adds its Book of Shadows page.
 const HERB_ORDER = ["lavender", "basil", "mint", "mugwort", "dandelion", "rose"];
 
+// Greenhouse pots: learning a herb grows a pot at its slot near Prof. Sage.
+// Each pot yields POT_FULL picks; emptied pots regrow after REGROW_DAYS days.
+const POT_FULL = 2;
+const REGROW_DAYS = 3;
+const POT_SLOTS = [[2, 5], [5, 5], [8, 5], [2, 7], [5, 7], [8, 7]]; // by HERB_ORDER index
+
 /* ---------- The recipe you learn in class ----------
    needs: ingredient ids -> quantity (matched exactly in the cauldron).
    steps: how-to shown in the grimoire.  makes: the produced item id. */
@@ -435,13 +441,13 @@ const ROOMS = {
     doors: [
       { gx: 0, gy: 5, to: "courtyard", atGx: 10, atGy: 6, label: "Courtyard <" },
     ],
+    // Prof. Sage is the static base; herb pots are added dynamically as you
+    // study plants (see syncGreenhousePots).
     inters: [
       { gx: 6, gy: 2, kind: "teacher", name: "Prof. Sage", color: [120, 200, 120], action: "class", subject: "herbology" },
-      { gx: 9, gy: 3, kind: "herb",    name: "Lavender",   color: [150, 130, 215], action: "forage" },
     ],
     decor: [
-      { gx: 3, gy: 8, kind: "pots" },
-      { gx: 9, gy: 8, kind: "pots" },
+      { gx: 10, gy: 8, kind: "pots" },
       { gx: 3, gy: 2, kind: "barrel" },
       { gx: 1, gy: 9, kind: "lantern", size: 26 },
     ],
@@ -572,6 +578,9 @@ const ROOMS = {
   },
 };
 
+// The greenhouse's permanent fixtures (Prof. Sage); pots are appended per herb.
+const GH_BASE = ROOMS.greenhouse.inters.slice();
+
 /* ---------- ART ASSETS (drop pixel-art PNGs in here) ----------
    Paste a base64 data URI as the value to replace a placeholder rectangle —
    that's the ONLY change needed per asset. Keys left as "" keep their
@@ -663,6 +672,7 @@ function resetGame() {
     knownRecipes: {},     // recipe id -> true
     skills: {},           // subject id -> level (raised by attending class)
     herbsKnown: {},       // herb id -> true (studied in Herbology)
+    pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
     journal: {},          // subject id -> takeaway line (recorded on first lesson)
     coin: 0,
     friendship: 0,
@@ -683,6 +693,7 @@ function resetGame() {
   introLetter = true;    // invitation letter (shown once at the start)
   showTimetable = false; // timetable overlay
   nightSummary = false;  // nightly recap (sleep)
+  syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
 }
 
@@ -809,7 +820,7 @@ function onArrive() {
 function doAction(o) {
   switch (o.action) {
     case "class":   return actClass(o.subject);
-    case "forage":  return actForage();
+    case "forage":  return actForage(o);
     case "brew":    return actBrew();
     case "sell":    return actSell();
     case "friend":  return actFriend();
@@ -879,8 +890,33 @@ function teachHerb() {
   state.skills.herbology = Object.keys(state.herbsKnown).length;
   state.journal.herbology = "Studying the garden — " + state.skills.herbology + " of " + HERB_ORDER.length + " plants learned.";
   if (next === "lavender") state.knownRecipes[RECIPE.id] = true;
+  state.pots[next] = { stock: POT_FULL, readyDay: state.dayCount };  // a fresh pot appears
+  syncGreenhousePots();
   state.todayLog.push("Learned " + ITEMS[next].name);
   startDialogue(ITEMS[next].lesson);
+}
+
+/* ---------- Greenhouse pots ---------- */
+// Rebuild the greenhouse interactables: Prof. Sage + one pot per studied herb.
+function syncGreenhousePots() {
+  const pots = HERB_ORDER.filter((id) => state.herbsKnown[id]).map((id) => {
+    const slot = POT_SLOTS[HERB_ORDER.indexOf(id)];
+    return { gx: slot[0], gy: slot[1], kind: "herb", name: ITEMS[id].name,
+             color: ITEMS[id].color, action: "forage", herbId: id };
+  });
+  ROOMS.greenhouse.inters = GH_BASE.concat(pots);
+}
+// Lazily refill a pot once its regrowth day arrives.
+function refreshPot(id) {
+  const p = state.pots[id];
+  if (p && p.stock <= 0 && state.dayCount >= p.readyDay) p.stock = POT_FULL;
+}
+// Is it this herb's ideal gathering moon? (waxing for growers, full for psychics)
+function isIdealMoon(id) {
+  const m = HERB_MOON[id];
+  if (m === "Full") return moonPhase().name === "Full Moon";
+  if (m === "Waxing") return moonWaxing();
+  return false;
 }
 
 // Open the Book of Shadows (overview + a page per studied herb).
@@ -889,9 +925,25 @@ function actJournal() { journalOpen = true; bosPage = 0; }
 // Tapping the dorm timetable shows the weekly schedule.
 function actTimetable() { showTimetable = true; }
 
-function actForage() {
-  state.inv.lavender += 1;
-  toast("Foraged a sprig of Lavender.");
+// Pick from a greenhouse pot. Yields 2 on the herb's ideal moon (double
+// harvest), else 1. Emptying the pot starts its regrowth timer.
+function actForage(o) {
+  const id = (o && o.herbId) || "lavender";
+  refreshPot(id);
+  const pot = state.pots[id];
+  const nm = ITEMS[id].name;
+  if (!pot || pot.stock <= 0) {
+    const d = pot ? Math.max(0, pot.readyDay - state.dayCount) : REGROW_DAYS;
+    toast("The " + nm + " pot is bare — regrows in " + d + "d.");
+    return;
+  }
+  const ideal = isIdealMoon(id);
+  const yld = ideal ? 2 : 1;
+  state.inv[id] = (state.inv[id] || 0) + yld;
+  pot.stock -= 1;
+  if (pot.stock <= 0) pot.readyDay = state.dayCount + REGROW_DAYS;
+  state.todayLog.push("Picked " + yld + " " + nm + (ideal ? " (ideal moon)" : ""));
+  toast("Picked " + yld + " " + nm + (ideal ? " — double, ideal moon!" : ""));
 }
 
 // Tapping the cauldron opens the dedicated brewing screen.
@@ -928,6 +980,7 @@ function advanceDay() {
   state.attendedToday = {};
   state.observedToday = false;
   state.todayLog = [];
+  for (const id in state.pots) refreshPot(id);   // pots regrow overnight
   loadRoom("dorm", 5, 9);   // wake up at home
   toast("Day " + state.dayCount + " — " + weekday() + ". Good morning!");
 }
@@ -1144,20 +1197,34 @@ onDraw(() => {
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
   for (const o of r.inters) {
     const p = pulse();
-    if (ready(o.kind)) {
-      // NPCs render as tall characters (player height, aspect-correct);
-      // props render near-native square. Both bottom-anchored on the tile.
+    // greenhouse pots (o.herbId) show ripe vs regrowing, with stock + moon cue
+    const isPot = !!o.herbId;
+    let ripe = true, stock = 0, daysLeft = 0, ideal = false;
+    if (isPot) {
+      refreshPot(o.herbId);
+      const pot = state.pots[o.herbId];
+      stock = pot ? pot.stock : 0;
+      ripe = stock > 0;
+      daysLeft = pot ? Math.max(0, pot.readyDay - state.dayCount) : 0;
+      ideal = ripe && isIdealMoon(o.herbId);
+    }
+    const sprKey = isPot ? (ripe ? "herb" : "pots") : o.kind;
+    if (ready(sprKey)) {
+      // NPCs render as tall characters (player height); props/pots near-native.
       const isChar = CHAR_KINDS.has(o.kind);
       const w = isChar ? PLAYER_H * PLAYER_AR : PROP_DRAW;
       const h = isChar ? PLAYER_H : PROP_DRAW;
       drawSprite({
-        sprite: o.kind, anchor: "bot",
+        sprite: sprKey, anchor: "bot",
         pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE),
-        width: w, height: h,
+        width: w, height: h, opacity: (isPot && !ripe) ? 0.55 : 1,
       });
-      // subtle tappable halo on the base tile
-      drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
-                 color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+      // tappable halo only when actionable (pots only when ripe)
+      if (!isPot || ripe) {
+        drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+                   color: rgb(0, 0, 0), opacity: 0,
+                   outline: { color: ideal ? rgb(255, 240, 170) : rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+      }
     } else {
       drawRect({
         pos: vec2(o.gx * TILE + 4, ORIGIN_Y + o.gy * TILE + 4),
@@ -1167,9 +1234,13 @@ onDraw(() => {
         radius: 4,
       });
     }
+    let label = o.name;
+    if (isPot) label = ripe ? o.name + " x" + stock + (ideal ? " (ideal!)" : "")
+                            : o.name + " (" + daysLeft + "d)";
     drawText({
-      text: o.name, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1),
-      size: 8, color: rgb(230, 225, 245), anchor: "center", width: TILE * 2.4,
+      text: label, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1),
+      size: 8, anchor: "center", width: TILE * 2.6,
+      color: (isPot && !ripe) ? rgb(150, 150, 165) : (ideal ? rgb(255, 240, 170) : rgb(230, 225, 245)),
     });
   }
 
@@ -1220,20 +1291,22 @@ function drawHUD(r) {
   drawText({ text: moonPhase().name, pos: vec2(CANVAS_W - 30, 28), size: 8,
              color: rgb(210, 210, 235), anchor: "right" });
 
-  // inventory chips (only items you actually hold)
-  let ix = 8;
-  let any = false;
-  for (const id in state.inv) {
-    if (state.inv[id] <= 0) continue;
-    any = true;
-    const it = ITEMS[id], ikey = "item_" + id;
-    if (ready(ikey)) drawSprite({ sprite: ikey, pos: vec2(ix, 37), width: 20, height: 20 });
-    else drawRect({ pos: vec2(ix, 40), width: 12, height: 12, color: col(it.color), radius: 2 });
-    const label = it.name + " x" + state.inv[id];
-    drawText({ text: label, pos: vec2(ix + 22, 42), size: 9, color: rgb(220, 220, 235) });
-    ix += 22 + label.length * 5.4 + 12;
+  // inventory chips — compact (icon/colour + count) so the whole satchel fits
+  const held = Object.keys(state.inv).filter((id) => state.inv[id] > 0);
+  if (!held.length) {
+    drawText({ text: "Bag: empty", pos: vec2(8, 41), size: 9, color: rgb(150, 150, 170) });
+  } else {
+    let ix = 8;
+    for (const id of held) {
+      const it = ITEMS[id], ikey = "item_" + id;
+      if (ready(ikey)) drawSprite({ sprite: ikey, pos: vec2(ix, 38), width: 18, height: 18 });
+      else drawRect({ pos: vec2(ix, 41), width: 13, height: 13, color: col(it.color), radius: 3,
+                      outline: { color: rgb(20, 16, 26), width: 1 } });
+      const cnt = "x" + state.inv[id];
+      drawText({ text: cnt, pos: vec2(ix + 19, 43), size: 9, color: rgb(225, 225, 235) });
+      ix += 19 + cnt.length * 6 + 9;
+    }
   }
-  if (!any) drawText({ text: "Bag: empty", pos: vec2(8, 41), size: 9, color: rgb(150, 150, 170) });
 
   // objective hint along the bottom
   drawRect({ pos: vec2(0, CANVAS_H - 64), width: CANVAS_W, height: 64, color: rgb(26, 22, 38) });
