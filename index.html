@@ -305,6 +305,35 @@ const TIMETABLE = {
 // Which weekdays a subject is taught (for "come back on..." hints).
 function subjectDays(id) { return DAYS.filter((d) => (TIMETABLE[d] || []).includes(id)); }
 
+/* ---------- Lunar system ----------
+   A stylised synodic cycle: an in-game "moonth" of LUNAR_CYCLE days, bucketed
+   into the 8 traditional phases. The moon starts New on Day 1, is Full near the
+   middle, and drives gathering potency and observatory work. Meanings are the
+   common folk-magic associations of each phase. */
+const LUNAR_CYCLE = 28;
+const MOON_PHASES = [
+  { name: "New Moon",        mean: "Beginnings. Set intentions, plant seeds, rest." },
+  { name: "Waxing Crescent", mean: "Intention takes root; first small steps." },
+  { name: "First Quarter",   mean: "Action and decision; push through resistance." },
+  { name: "Waxing Gibbous",  mean: "Refine and adjust as things grow." },
+  { name: "Full Moon",       mean: "Peak power — divination, charging, manifestation, release." },
+  { name: "Waning Gibbous",  mean: "Gratitude; share and give back." },
+  { name: "Last Quarter",    mean: "Release and banish; let go of what no longer serves." },
+  { name: "Waning Crescent", mean: "Rest, reflect, surrender before the new." },
+];
+const moonFrac  = () => ((state.dayCount - 1) % LUNAR_CYCLE) / LUNAR_CYCLE; // 0..1
+const moonIndex = () => Math.round(moonFrac() * 8) % 8;
+const moonPhase = () => MOON_PHASES[moonIndex()];
+const moonIllum = () => (1 - Math.cos(2 * Math.PI * moonFrac())) / 2;       // 0 new .. 1 full
+const moonWaxing = () => moonFrac() < 0.5;
+
+// Best moon phase to gather each herb (grows with the waxing moon; psychic/
+// divinatory herbs peak at the full moon). Shown in the Book of Shadows.
+const HERB_MOON = {
+  lavender: "Waxing", basil: "Waxing", mint: "Waxing",
+  mugwort: "Full", dandelion: "Full", rose: "Waxing",
+};
+
 /* ---------- Maps ----------
    Every room shares a simple bordered grid: '#' = wall, '.' = floor.
    Doors and interactables are placed as objects ON the grid; doors override
@@ -515,10 +544,10 @@ const ROOMS = {
     ],
     inters: [
       { gx: 6, gy: 3, kind: "t_astronomy", name: "Prof. Vega", color: [120, 140, 230], action: "class", subject: "astronomy" },
+      { gx: 6, gy: 8, kind: "telescope", name: "Telescope", color: [150, 160, 210], action: "observe" },
     ],
     decor: [
-      { gx: 3, gy: 8, kind: "telescope", size: 48 },
-      { gx: 9, gy: 8, kind: "telescope", size: 48 },
+      { gx: 2, gy: 8, kind: "telescope", size: 44 },
       { gx: 1, gy: 1, kind: "lantern", size: 26 },
       { gx: 10, gy: 1, kind: "lantern", size: 26 },
     ],
@@ -639,6 +668,7 @@ function resetGame() {
     friendship: 0,
     dayCount: 1,          // 1-based; weekday = DAYS[(dayCount-1) % 7]
     attendedToday: {},    // subject id -> true (one lesson per class per day)
+    observedToday: false, // charted the moon at the observatory tonight?
     todayLog: [],         // events for tonight's recap
     flags: { metFriend: false },
   };
@@ -786,7 +816,26 @@ function doAction(o) {
     case "sleep":   return actSleep();
     case "journal": return actJournal();
     case "timetable": return actTimetable();
+    case "observe": return actObserve();
   }
+}
+
+// Chart the moon at the observatory: read tonight's phase and its meaning.
+function actObserve() {
+  const p = moonPhase();
+  if (state.observedToday) {
+    startDialogue([{ s: "Telescope", t: "Tonight's moon is " + p.name + ". You've already charted the sky." }]);
+    return;
+  }
+  state.observedToday = true;
+  state.todayLog.push("Charted the " + p.name);
+  startDialogue([
+    { s: "Prof. Vega", t: "Look — tonight is the " + p.name + "." },
+    { s: "Prof. Vega", t: p.mean },
+    { s: "Prof. Vega", t: moonWaxing() ? "The light is growing — a fine time to begin and to gather growing herbs."
+                                       : (moonIllum() > 0.98 ? "At the full, psychic and divinatory work is strongest."
+                                                             : "The light is fading — a time to release, banish, and rest.") },
+  ]);
 }
 
 // Attend a class — but only on its scheduled day, once per day. Herbology
@@ -877,6 +926,7 @@ function advanceDay() {
   nightSummary = false;
   state.dayCount += 1;
   state.attendedToday = {};
+  state.observedToday = false;
   state.todayLog = [];
   loadRoom("dorm", 5, 9);   // wake up at home
   toast("Day " + state.dayCount + " — " + weekday() + ". Good morning!");
@@ -1018,6 +1068,19 @@ onUpdate(() => {
 const col = (a, mul = 1) => rgb(a[0] * mul, a[1] * mul, a[2] * mul);
 const pulse = () => 0.5 + 0.5 * Math.sin(time() * 4);
 
+// Draw the current moon phase as a disc; `bg` (the backdrop colour behind it)
+// is used for the shadow that carves out the crescent/gibbous shape.
+function drawMoon(cxp, cyp, R, bg) {
+  drawCircle({ pos: vec2(cxp, cyp), radius: R, color: rgb(238, 236, 214) });
+  drawCircle({ pos: vec2(cxp - R * 0.32, cyp - R * 0.2), radius: R * 0.13, color: rgb(214, 212, 190) });
+  drawCircle({ pos: vec2(cxp + R * 0.28, cyp + R * 0.26), radius: R * 0.17, color: rgb(214, 212, 190) });
+  const illum = moonIllum();
+  if (illum < 0.985) {
+    const shift = (moonWaxing() ? -1 : 1) * (1 - illum) * 2 * R;  // lit side faces the waxing/waning direction
+    drawCircle({ pos: vec2(cxp + shift, cyp), radius: R + 1, color: rgb(bg[0], bg[1], bg[2]) });
+  }
+}
+
 onDraw(() => {
   const r = room();
 
@@ -1035,6 +1098,19 @@ onDraw(() => {
         drawRect({ pos, width: TILE, height: TILE, color: isWall ? col(r.floor, 0.45) : col(r.floor, shade) });
       }
     }
+  }
+
+  // --- observatory night sky + the live moon ---
+  if (state.roomId === "observatory") {
+    const sky = [20, 22, 44];
+    drawRect({ pos: vec2(0, ORIGIN_Y), width: CANVAS_W, height: 100, color: rgb(sky[0], sky[1], sky[2]) });
+    for (let i = 0; i < 18; i++) {                      // a scatter of stars
+      const sx = (i * 73 % CANVAS_W), sy = ORIGIN_Y + (i * 137 % 88) + 6;
+      drawCircle({ pos: vec2(sx, sy), radius: 1, color: rgb(220, 225, 255), opacity: 0.6 });
+    }
+    drawMoon(CANVAS_W / 2, ORIGIN_Y + 46, 28, sky);
+    drawText({ text: moonPhase().name, pos: vec2(CANVAS_W / 2, ORIGIN_Y + 86), size: 10,
+               color: rgb(220, 220, 245), anchor: "center" });
   }
 
   // --- doors (walkable; labelled with destination) ---
@@ -1137,6 +1213,10 @@ function drawHUD(r) {
     text: "Coin " + state.coin + "   Friend " + state.friendship + "   Day " + state.dayCount + " · " + weekday(),
     pos: vec2(8, 24), size: 10, color: rgb(255, 225, 150),
   });
+  // moon phase indicator (top-right)
+  drawMoon(CANVAS_W - 16, 16, 9, [26, 22, 38]);
+  drawText({ text: moonPhase().name, pos: vec2(CANVAS_W - 30, 28), size: 8,
+             color: rgb(210, 210, 235), anchor: "right" });
 
   // inventory chips (only items you actually hold)
   let ix = 8;
@@ -1194,6 +1274,9 @@ function drawNight() {
   drawText({ text: "Goodnight", pos: vec2(cxm, 96), size: 22, color: rgb(255, 225, 150), anchor: "center" });
   drawText({ text: "Day " + state.dayCount + " · " + weekday(), pos: vec2(cxm, 126), size: 12,
              color: rgb(200, 200, 220), anchor: "center" });
+  drawMoon(cxm - 64, 146, 9, [10, 8, 18]);
+  drawText({ text: "Tonight: " + moonPhase().name, pos: vec2(cxm - 50, 146), size: 11,
+             color: rgb(210, 210, 240), anchor: "left" });
 
   drawText({ text: "Today you:", pos: vec2(cxm, 168), size: 13, color: rgb(220, 215, 240), anchor: "center" });
   const log = state.todayLog.length ? state.todayLog : ["had a quiet day"];
@@ -1241,7 +1324,9 @@ function drawTimetable() {
              outline: { color: rgb(150, 120, 60), width: 2 } });
   const INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110), today = weekday();
   let y = by + 20;
-  drawText({ text: "Timetable", pos: vec2(bx + bw / 2, y), size: 20, font: hf(), color: HDR, anchor: "center" }); y += 30;
+  drawText({ text: "Timetable", pos: vec2(bx + bw / 2, y), size: 20, font: hf(), color: HDR, anchor: "center" }); y += 22;
+  drawText({ text: "Day " + state.dayCount + " · " + today + "  —  " + moonPhase().name,
+             pos: vec2(bx + bw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 22;
   for (const d of DAYS) {
     const isToday = d === today;
     const classes = (TIMETABLE[d] || []).map((id) => SUBJECTS[id].name).join(", ") || "free study";
@@ -1289,7 +1374,7 @@ function drawJournal() {                       // (the Book of Shadows)
   const herbs = bosHerbPages();
   if (bosPage > bosTotalPages() - 1) bosPage = bosTotalPages() - 1;
   if (bosPage === 0) drawBosOverview(px, py, pw, ph);
-  else               drawHerbPage(ITEMS[herbs[bosPage - 1]], px, py, pw, ph);
+  else               drawHerbPage(herbs[bosPage - 1], px, py, pw, ph);
 
   // page buttons
   for (const b of bosButtons()) {
@@ -1324,7 +1409,8 @@ function drawBosOverview(px, py, pw, ph) {
              pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
 }
 
-function drawHerbPage(h, px, py, pw, ph) {
+function drawHerbPage(id, px, py, pw, ph) {
+  const h = ITEMS[id];
   const x = px + 16, INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110);
   let y = py + 16;
   drawText({ text: h.name, pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: HDR, anchor: "center" }); y += 24;
@@ -1340,7 +1426,8 @@ function drawHerbPage(h, px, py, pw, ph) {
              size: 13, font: hf(), color: HDR, anchor: "center" }); y += 22;
   drawText({ text: "Powers:  " + h.powers.join(", "), pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 30;
   drawText({ text: "Herbal:  " + h.herbal, pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 44;
-  if (h.safety) { drawText({ text: "Caution:  " + h.safety, pos: vec2(x, y), size: 12, font: hf(), color: rgb(150, 70, 60), width: pw - 28, lineSpacing: 2 }); y += 36; }
+  if (HERB_MOON[id]) { drawText({ text: "Gather:  " + HERB_MOON[id] + " moon", pos: vec2(x, y), size: 13, font: hf(), color: HDR }); y += 20; }
+  if (h.safety) { drawText({ text: "Caution:  " + h.safety, pos: vec2(x, y), size: 12, font: hf(), color: rgb(150, 70, 60), width: pw - 28, lineSpacing: 2 }); y += 34; }
   drawText({ text: '"' + h.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
 }
 
