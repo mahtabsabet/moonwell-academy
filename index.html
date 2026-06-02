@@ -158,12 +158,38 @@ const ITEMS = {
     lore: "Fresh, living water — the base of any gentle tonic.",
   },
   lavender_calm_tonic: {
-    name: "Calm Tonic",
-    fullName: "Lavender Calm Tonic",
-    kind: "potion",
-    color: [185, 145, 255],
-    sell: 25,
+    name: "Calm Tonic", fullName: "Lavender Calm Tonic", kind: "potion",
+    color: [185, 145, 255], sell: 25,
     lore: "A soft violet brew that quiets a restless mind.",
+  },
+  mugwort_dream_tea: {
+    name: "Dream Tea", fullName: "Mugwort Dream Tea", kind: "potion",
+    color: [150, 150, 118], sell: 30,
+    lore: "Steeped just below a boil — it opens the gate to vivid, prophetic dreams.",
+  },
+  prosperity_tea: {
+    name: "Prosperity Tea", fullName: "Prosperity Tea", kind: "potion",
+    color: [150, 200, 120], sell: 35,
+    lore: "Mint and basil, stirred for increase — draws money and good fortune.",
+  },
+  heartsease_rosewater: {
+    name: "Rosewater", fullName: "Heart's-Ease Rosewater", kind: "potion",
+    color: [230, 140, 160], sell: 30,
+    lore: "Rose petals warmed gently — for love, comfort, and a softer sight.",
+  },
+  wishing_brew: {
+    name: "Wishing Brew", fullName: "Dandelion Wishing Brew", kind: "potion",
+    color: [240, 210, 90], sell: 40,
+    lore: "Dandelion in moon water — whisper a wish and let it carry.",
+  },
+  dreaming_draught: {
+    name: "Dreaming Draught", fullName: "Moonlit Dreaming Draught", kind: "potion",
+    color: [170, 150, 230], sell: 55,
+    lore: "Mugwort and lavender steeped in moon water — deep, gentle, true dreams.",
+  },
+  moon_water: {
+    name: "Moon Water", kind: "base", color: [190, 200, 235],
+    lore: "Spring water charged under the full moon — potent for wishes and dreams.",
   },
 };
 
@@ -185,21 +211,50 @@ const HERB_SELL = 2;
 const SEED_DROP_CHANCE = 0.35;
 const PLANTER_SLOTS = [[3, 4], [5, 4], [7, 4], [3, 7], [5, 7], [7, 7]];
 
-/* ---------- The recipe you learn in class ----------
-   needs: ingredient ids -> quantity (matched exactly in the cauldron).
-   steps: how-to shown in the grimoire.  makes: the produced item id. */
-const RECIPE = {
-  id: "lavender_calm_tonic",
-  name: "Lavender Calm Tonic",
-  needs: { spring_water: 1, lavender: 1 },
-  makes: "lavender_calm_tonic",
-  summary: "A calming tonic drawn from lavender's airy, Mercurial nature.",
-  steps: [
-    "1. Fill with spring water.",
-    "2. Add a sprig of lavender.",
-    "3. Steep until pale violet.",
-  ],
+/* ---------- Potion recipes (grounded in real folk/herbal practice) ----------
+   needs: ingredient ids -> quantity, matched exactly in the cauldron. `herb` is
+   the key plant (must be studied before Potions class teaches the recipe).
+   Recipes using moon_water can only be brewed at the Full Moon (moon water only
+   appears in the cauldron's pantry then). See docs/curriculum-herbology.md. */
+const RECIPES = {
+  calm_tonic: {
+    id: "calm_tonic", name: "Lavender Calm Tonic", herb: "lavender",
+    needs: { spring_water: 1, lavender: 1 }, makes: "lavender_calm_tonic",
+    does: "Calms the mind; restful sleep.",
+    method: "Steep lavender in spring water until pale violet.",
+  },
+  dream_tea: {
+    id: "dream_tea", name: "Mugwort Dream Tea", herb: "mugwort",
+    needs: { spring_water: 1, mugwort: 1 }, makes: "mugwort_dream_tea",
+    does: "Vivid, prophetic dreams.",
+    method: "Warm spring water just below a boil, steep mugwort, sip before bed.",
+  },
+  prosperity_tea: {
+    id: "prosperity_tea", name: "Prosperity Tea", herb: "mint",
+    needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_tea",
+    does: "Draws money and luck.",
+    method: "Steep mint and basil together; stir clockwise for increase.",
+  },
+  rosewater: {
+    id: "rosewater", name: "Heart's-Ease Rosewater", herb: "rose",
+    needs: { spring_water: 1, rose: 1 }, makes: "heartsease_rosewater",
+    does: "Love, comfort, softer sight.",
+    method: "Warm rose petals in spring water gently — never let it boil.",
+  },
+  wishing_brew: {
+    id: "wishing_brew", name: "Dandelion Wishing Brew", herb: "dandelion",
+    needs: { moon_water: 1, dandelion: 1 }, makes: "wishing_brew",
+    does: "Wishes & divination. (Full moon.)",
+    method: "Steep dandelion in moon water; whisper your wish.",
+  },
+  dreaming_draught: {
+    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort",
+    needs: { moon_water: 1, mugwort: 1, lavender: 1 }, makes: "dreaming_draught",
+    does: "Deep, gentle, prophetic dreams. (Full moon.)",
+    method: "Steep mugwort and lavender in moon water beneath the full moon.",
+  },
 };
+const RECIPE_ORDER = ["calm_tonic", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
 
 /* ---------- NPC / object dialogue ---------- */
 const DIALOGUE = {
@@ -900,16 +955,40 @@ function actClass(id) {
   }
   state.attendedToday[id] = true;
   if (id === "herbology") return teachHerb();
+  if (id === "potions")   { teachRecipe(); }   // Potions also grants a recipe
   const first = !state.skills[id];
   state.skills[id] = (state.skills[id] || 0) + 1;
   if (first) {
     state.journal[id] = s.takeaway;
-    if (s.learnsRecipe) state.knownRecipes[RECIPE.id] = true;
     state.todayLog.push("Studied " + s.name);
-    startDialogue(s.lesson);
-  } else {
+    if (id !== "potions") startDialogue(s.lesson);  // potions speaks via teachRecipe
+  } else if (id !== "potions") {
     startDialogue(s.review || [{ s: s.teacher, t: "Remember: " + s.takeaway }]);
   }
+}
+
+// Potions: teach the next recipe whose herbs you've already studied.
+function teachRecipe() {
+  const next = RECIPE_ORDER.find((rid) => {
+    if (state.knownRecipes[rid]) return false;
+    return Object.keys(RECIPES[rid].needs).every((ing) =>
+      ITEMS[ing].kind !== "herb" || state.herbsKnown[ing]);
+  });
+  if (!next) {
+    const blocked = RECIPE_ORDER.some((rid) => !state.knownRecipes[rid]);
+    startDialogue([{ s: "Prof. Hollis", t: blocked
+      ? "To learn more brews, study their herbs in Herbology first."
+      : "You know every recipe this term — now practice makes the potion." }]);
+    return;
+  }
+  state.knownRecipes[next] = true;
+  const r = RECIPES[next];
+  state.todayLog.push("Learned the " + r.name);
+  startDialogue([
+    { s: "Prof. Hollis", t: "Today we brew the " + r.name + "." },
+    { s: "Prof. Hollis", t: r.method },
+    { s: "Prof. Hollis", t: "It's noted in your grimoire. " + r.does },
+  ]);
 }
 
 // Herbology: teach the next unstudied plant, adding its Book of Shadows page.
@@ -922,7 +1001,7 @@ function teachHerb() {
   state.herbsKnown[next] = true;
   state.skills.herbology = Object.keys(state.herbsKnown).length;
   state.journal.herbology = "Studying the garden — " + state.skills.herbology + " of " + HERB_ORDER.length + " plants learned.";
-  if (next === "lavender") state.knownRecipes[RECIPE.id] = true;
+  if (next === "lavender") state.knownRecipes["calm_tonic"] = true;  // bootstrap the first brew
   state.pots[next] = { stock: POT_FULL, readyDay: state.dayCount };  // a fresh pot appears
   syncGreenhousePots();
   state.todayLog.push("Learned " + ITEMS[next].name);
@@ -1022,7 +1101,7 @@ function buySeed(id) {
 }
 function sellItem(id) {
   if ((state.inv[id] || 0) <= 0) return;
-  const price = id === RECIPE.makes ? ITEMS[id].sell : HERB_SELL;
+  const price = ITEMS[id].kind === "potion" ? ITEMS[id].sell : HERB_SELL;
   state.inv[id] -= 1;
   state.coin += price;
   state.todayLog.push("Sold a " + ITEMS[id].name + " (+" + price + ")");
@@ -1031,8 +1110,8 @@ function sellItem(id) {
 // Tapping the cauldron opens the dedicated brewing screen.
 function actBrew() {
   brewUI = { contents: [], grimoireOpen: false, msg: "Add ingredients, then Brew." };
-  if (!state.knownRecipes[RECIPE.id]) {
-    brewUI.msg = "You have no recipes yet — attend class first.";
+  if (!Object.keys(state.knownRecipes).length) {
+    brewUI.msg = "You know no recipes yet — learn them in Herbology & Potions.";
   }
 }
 
@@ -1084,6 +1163,7 @@ function sameCounts(a, b) {
 // Ingredients you can drop into the pot right now.
 function pantry() {
   const list = [{ id: "spring_water", n: Infinity }]; // always available at the cauldron
+  if (moonPhase().name === "Full Moon") list.push({ id: "moon_water", n: Infinity }); // only at the full moon
   for (const id in state.inv) {
     if (ITEMS[id].kind === "herb" && state.inv[id] > 0) list.push({ id, n: state.inv[id] });
   }
@@ -1108,13 +1188,18 @@ function brewReturnContents() {
 }
 
 function brewAttempt() {
-  if (!state.knownRecipes[RECIPE.id]) { brewUI.msg = "Attend class to learn a recipe first."; return; }
   if (brewUI.contents.length === 0) { brewUI.msg = "Add some ingredients first."; return; }
-  if (sameCounts(countMap(brewUI.contents), RECIPE.needs)) {
+  const cc = countMap(brewUI.contents);
+  const matchId = Object.keys(RECIPES).find((rid) => sameCounts(cc, RECIPES[rid].needs));
+  if (matchId && state.knownRecipes[matchId]) {
+    const mk = RECIPES[matchId].makes;
     brewUI.contents = [];          // consumed (herbs already removed from bag)
-    state.inv[RECIPE.makes] += 1;
-    state.todayLog.push("Brewed a " + ITEMS[RECIPE.makes].name);
-    brewUI.msg = "It steeps to a pale violet — a Lavender Calm Tonic!";
+    state.inv[mk] = (state.inv[mk] || 0) + 1;
+    state.todayLog.push("Brewed a " + ITEMS[mk].name);
+    brewUI.msg = "Success — a " + ITEMS[mk].fullName + "!";
+  } else if (matchId) {
+    brewReturnContents();          // right mix, but not yet taught
+    brewUI.msg = "These do combine... but you've not learned this recipe yet.";
   } else {
     brewReturnContents();          // no failure punishment — ingredients returned
     brewUI.msg = "It fizzles softly. Check your grimoire and try again.";
@@ -1538,9 +1623,9 @@ function shopRows() {
   if (!anyBuy) push({ type: "note", label: "(study herbs to unlock their seeds)" });
   y += 6;
   push({ type: "hdr", label: "Sell" });
-  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && (id === RECIPE.makes || (ITEMS[id] && ITEMS[id].kind === "herb")));
+  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && (ITEMS[id].kind === "potion" || ITEMS[id].kind === "herb"));
   if (!sellable.length) push({ type: "note", label: "(nothing to sell)" });
-  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: id === RECIPE.makes ? ITEMS[id].sell : HERB_SELL });
+  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: ITEMS[id].kind === "potion" ? ITEMS[id].sell : HERB_SELL });
   y += 8;
   push({ type: "close", label: "Close" });
   return rows;
@@ -1842,40 +1927,29 @@ function drawGrimoire() {
   ruledLines(rpx, py, pw, ph);
   drawRect({ pos: vec2(CANVAS_W / 2 - 2, py), width: 4, height: ph, color: rgb(40, 24, 22), opacity: 0.55 });
 
-  if (!state.knownRecipes[RECIPE.id]) {
-    pageTab(lpx, py, pw, "Herbs");
-    pageTab(rpx, py, pw, "Potions");
+  pageTab(lpx, py, pw, "Recipes");
+  pageTab(rpx, py, pw, "Recipes");
+  const known = RECIPE_ORDER.filter((rid) => state.knownRecipes[rid]);
+  const ingName = (rid) => Object.entries(RECIPES[rid].needs)
+    .map(([ing, q]) => (q > 1 ? q + "x " : "") + ITEMS[ing].name).join(" + ");
+
+  if (!known.length) {
     drawText({ text: "These pages are still blank...", pos: vec2(CANVAS_W / 2, py + ph / 2 - 10),
                size: 14, font: hf(), color: INK, anchor: "center", width: bw - 60 });
-    drawText({ text: "Attend a class to fill them.", pos: vec2(CANVAS_W / 2, py + ph / 2 + 12),
+    drawText({ text: "Learn recipes in Herbology & Potions.", pos: vec2(CANVAS_W / 2, py + ph / 2 + 12),
                size: 13, font: hf(), color: INK, anchor: "center", width: bw - 60 });
   } else {
-    const lav = ITEMS.lavender, tonic = ITEMS.lavender_calm_tonic;
-
-    // ---- LEFT PAGE: Herbs › Lavender ----
-    pageTab(lpx, py, pw, "Herbs");
-    let y = py + 16, lx = lpx + 12, lw = pw - 24;
-    drawText({ text: lav.name, pos: vec2(lpx + pw / 2, y), size: 22, font: hf(), color: INK_HDR, anchor: "center" }); y += 24;
-    drawText({ text: lav.botanical, pos: vec2(lpx + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 22;
-    bookIllo(lpx + pw / 2, y + 34, 60, "herb", lav.color); y += 78;
-    drawText({ text: "Element:  " + lav.element, pos: vec2(lx, y), size: 14, font: hf(), color: INK }); y += 19;
-    drawText({ text: "Planet:  " + lav.planet, pos: vec2(lx, y), size: 14, font: hf(), color: INK }); y += 19;
-    drawText({ text: "Uses:  " + lav.uses, pos: vec2(lx, y), size: 13, font: hf(), color: INK, width: lw, lineSpacing: 2 }); y += 36;
-    drawText({ text: lav.lore, pos: vec2(lx, y), size: 13, font: hf(), color: INK, width: lw, lineSpacing: 2 });
-
-    // ---- RIGHT PAGE: Potions › Lavender Calm Tonic ----
-    pageTab(rpx, py, pw, "Potions");
-    let ry = py + 16, rx = rpx + 12, rw = pw - 24;
-    drawText({ text: tonic.fullName, pos: vec2(rpx + pw / 2, ry), size: 16, font: hf(),
-               color: INK_HDR, anchor: "center", width: rw }); ry += 32;
-    bookIllo(rpx + pw / 2, ry + 30, 54, "item_lavender_calm_tonic", tonic.color); ry += 70;
-    drawText({ text: "Method", pos: vec2(rx, ry), size: 15, font: hf(), color: INK_HDR }); ry += 20;
-    for (const s of RECIPE.steps) {
-      drawText({ text: s, pos: vec2(rx, ry), size: 13, font: hf(), color: INK, width: rw, lineSpacing: 2 });
-      ry += 30;
-    }
-    ry += 4;
-    drawText({ text: "Sells for " + tonic.sell + " coin.", pos: vec2(rx, ry), size: 13, font: hf(), color: INK });
+    // two columns, recipes flow down then across
+    const cols = [{ x: lpx + 12, w: pw - 20 }, { x: rpx + 12, w: pw - 20 }];
+    const perCol = Math.ceil(known.length / 2);
+    known.forEach((rid, i) => {
+      const c = cols[Math.floor(i / perCol)] || cols[1];
+      let y = py + 14 + (i % perCol) * 64;
+      const r = RECIPES[rid];
+      drawText({ text: r.name, pos: vec2(c.x, y), size: 14, font: hf(), color: INK_HDR, width: c.w, lineSpacing: 1 }); y += 18;
+      drawText({ text: ingName(rid), pos: vec2(c.x, y), size: 12, font: hf(), color: INK, width: c.w, lineSpacing: 1 }); y += 17;
+      drawText({ text: r.does, pos: vec2(c.x, y), size: 12, font: hf(), color: rgb(96, 70, 110), width: c.w, lineSpacing: 1 });
+    });
   }
 
   drawText({ text: "(tap anywhere to close)", pos: vec2(CANVAS_W / 2, CANVAS_H - 42),
