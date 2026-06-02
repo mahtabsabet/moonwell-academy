@@ -218,43 +218,45 @@ const PLANTER_SLOTS = [[3, 4], [5, 4], [7, 4], [3, 7], [5, 7], [7, 7]];
    appears in the cauldron's pantry then). See docs/curriculum-herbology.md. */
 const RECIPES = {
   calm_tonic: {
-    id: "calm_tonic", name: "Lavender Calm Tonic", herb: "lavender",
+    id: "calm_tonic", name: "Lavender Calm Tonic", herb: "lavender", heat: "med",
     needs: { spring_water: 1, lavender: 1 }, makes: "lavender_calm_tonic",
     does: "Calms the mind; restful sleep.",
-    method: "Steep lavender in spring water until pale violet.",
+    method: "Steep lavender in spring water over a steady heat until pale violet.",
   },
   dream_tea: {
-    id: "dream_tea", name: "Mugwort Dream Tea", herb: "mugwort",
+    id: "dream_tea", name: "Mugwort Dream Tea", herb: "mugwort", heat: "med",
     needs: { spring_water: 1, mugwort: 1 }, makes: "mugwort_dream_tea",
     does: "Vivid, prophetic dreams.",
     method: "Warm spring water just below a boil, steep mugwort, sip before bed.",
   },
   prosperity_tea: {
-    id: "prosperity_tea", name: "Prosperity Tea", herb: "mint",
+    id: "prosperity_tea", name: "Prosperity Tea", herb: "mint", heat: "med",
     needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_tea",
     does: "Draws money and luck.",
     method: "Steep mint and basil together; stir clockwise for increase.",
   },
   rosewater: {
-    id: "rosewater", name: "Heart's-Ease Rosewater", herb: "rose",
+    id: "rosewater", name: "Heart's-Ease Rosewater", herb: "rose", heat: "low",
     needs: { spring_water: 1, rose: 1 }, makes: "heartsease_rosewater",
     does: "Love, comfort, softer sight.",
-    method: "Warm rose petals in spring water gently — never let it boil.",
+    method: "Warm rose petals gently — never let it boil.",
   },
   wishing_brew: {
-    id: "wishing_brew", name: "Dandelion Wishing Brew", herb: "dandelion",
+    id: "wishing_brew", name: "Dandelion Wishing Brew", herb: "dandelion", heat: "high",
     needs: { moon_water: 1, dandelion: 1 }, makes: "wishing_brew",
     does: "Wishes & divination. (Full moon.)",
-    method: "Steep dandelion in moon water; whisper your wish.",
+    method: "Simmer dandelion root hard in moon water; whisper your wish.",
   },
   dreaming_draught: {
-    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort",
+    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort", heat: "low",
     needs: { moon_water: 1, mugwort: 1, lavender: 1 }, makes: "dreaming_draught",
     does: "Deep, gentle, prophetic dreams. (Full moon.)",
-    method: "Steep mugwort and lavender in moon water beneath the full moon.",
+    method: "Warm mugwort and lavender gently in moon water beneath the full moon.",
   },
 };
 const RECIPE_ORDER = ["calm_tonic", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
+const HEATS = ["low", "med", "high"];
+const heatWord = (h) => ({ low: "warm gently", med: "steep", high: "simmer hard" }[h] || h);
 
 /* ---------- NPC / object dialogue ---------- */
 const DIALOGUE = {
@@ -1109,7 +1111,7 @@ function sellItem(id) {
 
 // Tapping the cauldron opens the dedicated brewing screen.
 function actBrew() {
-  brewUI = { contents: [], grimoireOpen: false, msg: "Add ingredients, then Brew." };
+  brewUI = { contents: [], grimoireOpen: false, heat: "med", msg: "Add ingredients, set the flame, then Brew." };
   if (!Object.keys(state.knownRecipes).length) {
     brewUI.msg = "You know no recipes yet — learn them in Herbology & Potions.";
   }
@@ -1192,7 +1194,15 @@ function brewAttempt() {
   const cc = countMap(brewUI.contents);
   const matchId = Object.keys(RECIPES).find((rid) => sameCounts(cc, RECIPES[rid].needs));
   if (matchId && state.knownRecipes[matchId]) {
-    const mk = RECIPES[matchId].makes;
+    const r = RECIPES[matchId];
+    if (brewUI.heat !== r.heat) {                 // right mix, wrong flame
+      brewReturnContents();
+      brewUI.msg = HEATS.indexOf(brewUI.heat) < HEATS.indexOf(r.heat)
+        ? "Too gentle — raise the flame (it needs to " + heatWord(r.heat) + ")."
+        : "Too fierce — it scorches. Lower the flame (it needs to " + heatWord(r.heat) + ").";
+      return;
+    }
+    const mk = r.makes;
     brewUI.contents = [];          // consumed (herbs already removed from bag)
     state.inv[mk] = (state.inv[mk] || 0) + 1;
     state.todayLog.push("Brewed a " + ITEMS[mk].name);
@@ -1794,6 +1804,12 @@ const pointIn = (m, b) => m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <=
 // Build the tappable button list for the current brew screen state.
 function brewButtons() {
   const btns = [];
+  // heat control: three selectable flame levels
+  ["low", "med", "high"].forEach((lv, i) => {
+    btns.push({ kind: "heat", level: lv, x: 60 + i * 76, y: 190, w: 70, h: 22,
+      label: { low: "Low", med: "Med", high: "High" }[lv],
+      color: brewUI.heat === lv ? [255, 175, 75] : [150, 130, 120] });
+  });
   // pantry: one button per available ingredient
   const items = pantry();
   items.forEach((it, i) => {
@@ -1821,11 +1837,27 @@ function handleBrewTap(m) {
   for (const b of brewButtons()) {
     if (!pointIn(m, b)) continue;
     if (b.kind === "add")      brewAdd(b.id);
+    else if (b.kind === "heat") { brewUI.heat = b.level; brewUI.msg = "Flame set to " + b.label.toLowerCase() + " (" + heatWord(b.level) + ")."; }
     else if (b.kind === "grimoire") brewUI.grimoireOpen = true;
     else if (b.kind === "brew")     brewAttempt();
     else if (b.kind === "empty")  { brewReturnContents(); brewUI.msg = "Cleared the cauldron."; }
     else if (b.kind === "leave")    brewLeave();
     return;
+  }
+}
+
+// Flickering fire under the cauldron, sized to the heat level.
+function drawFlames(cxp, baseY, heat) {
+  const lvl = { low: 1, med: 2, high: 3 }[heat] || 0;
+  if (!lvl) return;
+  drawCircle({ pos: vec2(cxp, baseY + 4), radius: 16 + lvl * 5, color: rgb(255, 140, 50), opacity: 0.16 });
+  const count = 2 + lvl * 2;
+  for (let i = 0; i < count; i++) {
+    const t = time() * 6 + i * 1.3;
+    const fx = cxp + (i - (count - 1) / 2) * (10 + lvl * 2);
+    const h = (8 + lvl * 7) * (0.7 + 0.3 * Math.sin(t));
+    drawCircle({ pos: vec2(fx, baseY - h * 0.4), radius: 5 + lvl, color: rgb(240, 120, 40), opacity: 0.85 });
+    drawCircle({ pos: vec2(fx, baseY - h * 0.55), radius: 3 + lvl * 0.6, color: rgb(255, 215, 95), opacity: 0.9 });
   }
 }
 
@@ -1840,32 +1872,37 @@ function brewLiquidColor() {
 
 function drawBrew() {
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(16, 14, 26), opacity: 0.97 });
-  const cxm = CANVAS_W / 2;
-  drawText({ text: "The Cauldron", pos: vec2(cxm, 18), size: 16, color: rgb(225, 215, 250), anchor: "center" });
+  const cxm = CANVAS_W / 2, cauldY = 86;
+  drawText({ text: "The Cauldron", pos: vec2(cxm, 14), size: 16, color: rgb(225, 215, 250), anchor: "center" });
 
+  // bubble rate rises with the flame
+  const bubbleSpeed = { low: 12, med: 24, high: 40 }[brewUI.heat] || 20;
   // cauldron body + bubbling liquid (sprite if supplied, else drawn pot)
   if (ready("cauldron_big")) {
-    drawSprite({ sprite: "cauldron_big", pos: vec2(cxm, 104), width: 120, height: 120, anchor: "center" });
-    drawCircle({ pos: vec2(cxm, 96), radius: 30, color: brewLiquidColor(), opacity: 0.85 });
+    drawSprite({ sprite: "cauldron_big", pos: vec2(cxm, cauldY), width: 120, height: 120, anchor: "center" });
+    drawCircle({ pos: vec2(cxm, cauldY - 8), radius: 30, color: brewLiquidColor(), opacity: 0.85 });
   } else {
-    drawCircle({ pos: vec2(cxm, 110), radius: 56, color: rgb(34, 30, 46) });
-    drawCircle({ pos: vec2(cxm, 104), radius: 44, color: brewLiquidColor() });
+    drawCircle({ pos: vec2(cxm, cauldY + 6), radius: 56, color: rgb(34, 30, 46) });
+    drawCircle({ pos: vec2(cxm, cauldY), radius: 44, color: brewLiquidColor() });
   }
-  for (let i = 0; i < brewUI.contents.length; i++) {       // little bubbles per ingredient
+  for (let i = 0; i < brewUI.contents.length; i++) {       // bubbles (faster on higher heat)
     const a = time() * 2 + i * 1.7;
-    drawCircle({ pos: vec2(cxm + Math.sin(a) * 22, 100 - ((time() * 30 + i * 25) % 40)),
+    drawCircle({ pos: vec2(cxm + Math.sin(a) * 22, (cauldY - 4) - ((time() * bubbleSpeed + i * 25) % 40)),
                  radius: 3, color: rgb(255, 255, 255), opacity: 0.4 });
   }
+  drawFlames(cxm, cauldY + 58, brewUI.heat);               // fire beneath the pot
 
   // contents readout
   const contents = brewUI.contents.length
     ? brewUI.contents.map((id) => ITEMS[id].name).join(", ")
     : "(empty)";
-  drawText({ text: "In the pot: " + contents, pos: vec2(cxm, 178), size: 10,
+  drawText({ text: "In the pot: " + contents, pos: vec2(cxm, 166), size: 10,
              color: rgb(220, 220, 240), anchor: "center", width: CANVAS_W - 24 });
-  drawText({ text: brewUI.msg || "", pos: vec2(cxm, 206), size: 10,
+  // heat control label (buttons drawn from brewButtons)
+  drawText({ text: "Heat:", pos: vec2(18, 196), size: 11, color: rgb(255, 190, 120) });
+  drawText({ text: brewUI.msg || "", pos: vec2(cxm, 222), size: 10,
              color: rgb(255, 230, 170), anchor: "center", width: CANVAS_W - 24 });
-  drawText({ text: "Add an ingredient:", pos: vec2(18, 232), size: 10, color: rgb(180, 180, 205) });
+  drawText({ text: "Add an ingredient:", pos: vec2(18, 238), size: 10, color: rgb(180, 180, 205) });
 
   // buttons
   for (const b of brewButtons()) {
