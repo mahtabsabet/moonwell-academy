@@ -1076,7 +1076,9 @@ function drawMoon(cxp, cyp, R, bg) {
   drawCircle({ pos: vec2(cxp + R * 0.28, cyp + R * 0.26), radius: R * 0.17, color: rgb(214, 212, 190) });
   const illum = moonIllum();
   if (illum < 0.985) {
-    const shift = (moonWaxing() ? -1 : 1) * (1 - illum) * 2 * R;  // lit side faces the waxing/waning direction
+    // shadow disc sits ON the moon at new (illum 0) and slides clear by full
+    // (illum 1); it offsets toward the dark side so the lit limb faces correctly.
+    const shift = (moonWaxing() ? -1 : 1) * illum * 2 * R;
     drawCircle({ pos: vec2(cxp + shift, cyp), radius: R + 1, color: rgb(bg[0], bg[1], bg[2]) });
   }
 }
