@@ -1045,8 +1045,16 @@ function actFriend() {
   startDialogue(first ? DIALOGUE.friend_first : DIALOGUE.friend_again);
 }
 
-// Sleep -> nightly recap. Tapping it advances to the next day.
-function actSleep() { nightSummary = true; }
+// Sleep -> nightly recap, but only once today's scheduled classes are attended.
+function actSleep() {
+  const missed = (TIMETABLE[weekday()] || []).filter((id) => !state.attendedToday[id]);
+  if (missed.length) {
+    const names = missed.map((id) => SUBJECTS[id].name).join(" and ");
+    toast("Not yet — you still have " + names + " today.");
+    return;
+  }
+  nightSummary = true;
+}
 
 function advanceDay() {
   nightSummary = false;
@@ -1122,8 +1130,9 @@ function brewLeave() {
 function hintText() {
   const classes = TIMETABLE[weekday()] || [];
   if (!classes.length) return "Free day — forage, brew, sell, or visit Robin. Sleep to move on.";
-  const names = classes.map((id) => SUBJECTS[id].name).join(", ");
-  return "Today's classes: " + names + ".";
+  const remaining = classes.filter((id) => !state.attendedToday[id]).map((id) => SUBJECTS[id].name);
+  if (remaining.length) return "Attend today: " + remaining.join(", ") + ".";
+  return "Classes done — forage, brew, or rest when you're ready.";
 }
 
 /* ============================================================================
