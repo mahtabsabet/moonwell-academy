@@ -177,6 +177,14 @@ const POT_FULL = 2;
 const REGROW_DAYS = 3;
 const POT_SLOTS = [[2, 5], [5, 5], [8, 5], [2, 7], [5, 7], [8, 7]]; // by HERB_ORDER index
 
+// Herb Garden: plant seeds in planters, grow over GROW_DAYS, harvest. Seeds are
+// bought from the merchant (SEED_COST) or drop while foraging (SEED_DROP_CHANCE).
+const GROW_DAYS = 4;
+const SEED_COST = 5;
+const HERB_SELL = 2;
+const SEED_DROP_CHANCE = 0.35;
+const PLANTER_SLOTS = [[3, 4], [5, 4], [7, 4], [3, 7], [5, 7], [7, 7]];
+
 /* ---------- The recipe you learn in class ----------
    needs: ingredient ids -> quantity (matched exactly in the cauldron).
    steps: how-to shown in the grimoire.  makes: the produced item id. */
@@ -439,7 +447,8 @@ const ROOMS = {
     floor: [40, 64, 48],
     grid: STD_GRID,
     doors: [
-      { gx: 0, gy: 5, to: "courtyard", atGx: 10, atGy: 6, label: "Courtyard <" },
+      { gx: 0,  gy: 5, to: "courtyard", atGx: 10, atGy: 6, label: "Courtyard <" },
+      { gx: 11, gy: 6, to: "garden",    atGx: 1,  atGy: 6, label: "Garden >" },
     ],
     // Prof. Sage is the static base; herb pots are added dynamically as you
     // study plants (see syncGreenhousePots).
@@ -450,6 +459,25 @@ const ROOMS = {
       { gx: 10, gy: 8, kind: "pots" },
       { gx: 3, gy: 2, kind: "barrel" },
       { gx: 1, gy: 9, kind: "lantern", size: 26 },
+    ],
+  },
+
+  // ---- The Herb Garden: plant, grow, and harvest your own herbs ----
+  garden: {
+    name: "Herb Garden",
+    floor: [74, 58, 46],
+    grid: STD_GRID,
+    doors: [
+      { gx: 0, gy: 6, to: "greenhouse", atGx: 10, atGy: 6, label: "Greenhouse <" },
+    ],
+    inters: PLANTER_SLOTS.map((s, i) => ({
+      gx: s[0], gy: s[1], kind: "planter", name: "Planter", color: [120, 90, 60],
+      action: "planter", planterSlot: i,
+    })),
+    decor: [
+      { gx: 10, gy: 2, kind: "barrel" },
+      { gx: 1, gy: 2, kind: "pots" },
+      { gx: 10, gy: 9, kind: "lantern", size: 26 },
     ],
   },
 
@@ -567,7 +595,7 @@ const ROOMS = {
       { gx: 11, gy: 6, to: "courtyard", atGx: 1, atGy: 5, label: "Courtyard >" },
     ],
     inters: [
-      { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "sell" },
+      { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "shop" },
     ],
     decor: [
       { gx: 9, gy: 3, kind: "crystal_ball", size: 34 },
@@ -673,6 +701,8 @@ function resetGame() {
     skills: {},           // subject id -> level (raised by attending class)
     herbsKnown: {},       // herb id -> true (studied in Herbology)
     pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
+    seeds: {},            // herb id -> count (kept out of the satchel HUD)
+    planters: {},         // planter slot -> { herbId, plantedDay } | undefined
     journal: {},          // subject id -> takeaway line (recorded on first lesson)
     coin: 0,
     friendship: 0,
@@ -693,12 +723,14 @@ function resetGame() {
   introLetter = true;    // invitation letter (shown once at the start)
   showTimetable = false; // timetable overlay
   nightSummary = false;  // nightly recap (sleep)
+  shopOpen = false;      // merchant shop overlay
+  plantMenu = null;      // { slot } — choose a seed to plant
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Tiny helpers ---------- */
@@ -822,7 +854,8 @@ function doAction(o) {
     case "class":   return actClass(o.subject);
     case "forage":  return actForage(o);
     case "brew":    return actBrew();
-    case "sell":    return actSell();
+    case "shop":    return actShop();
+    case "planter": return actPlanter(o);
     case "friend":  return actFriend();
     case "sleep":   return actSleep();
     case "journal": return actJournal();
@@ -942,8 +975,57 @@ function actForage(o) {
   state.inv[id] = (state.inv[id] || 0) + yld;
   pot.stock -= 1;
   if (pot.stock <= 0) pot.readyDay = state.dayCount + REGROW_DAYS;
+  const gotSeed = Math.random() < SEED_DROP_CHANCE;   // sometimes a seed too
+  if (gotSeed) state.seeds[id] = (state.seeds[id] || 0) + 1;
   state.todayLog.push("Picked " + yld + " " + nm + (ideal ? " (ideal moon)" : ""));
-  toast("Picked " + yld + " " + nm + (ideal ? " — double, ideal moon!" : ""));
+  toast("Picked " + yld + " " + nm + (ideal ? " — double, ideal moon!" : "") + (gotSeed ? " (+seed)" : ""));
+}
+
+/* ---------- Herb Garden: planting & harvesting ---------- */
+function actPlanter(o) {
+  const slot = o.planterSlot, pl = state.planters[slot];
+  if (!pl) {                                    // empty -> plant a seed
+    if (!Object.keys(state.seeds).some((id) => state.seeds[id] > 0)) {
+      toast("No seeds — buy them from the merchant or find them foraging.");
+      return;
+    }
+    plantMenu = { slot };
+    return;
+  }
+  const age = state.dayCount - pl.plantedDay;
+  if (age < GROW_DAYS) { toast(ITEMS[pl.herbId].name + " is still growing — " + (GROW_DAYS - age) + "d left."); return; }
+  // ripe -> harvest (tended beds are generous; double on the ideal moon)
+  const ideal = isIdealMoon(pl.herbId);
+  const yld = ideal ? 4 : 2;
+  state.inv[pl.herbId] = (state.inv[pl.herbId] || 0) + yld;
+  const gotSeed = Math.random() < 0.5;
+  if (gotSeed) state.seeds[pl.herbId] = (state.seeds[pl.herbId] || 0) + 1;
+  state.todayLog.push("Harvested " + yld + " " + ITEMS[pl.herbId].name);
+  toast("Harvested " + yld + " " + ITEMS[pl.herbId].name + (ideal ? " — ideal moon!" : "") + (gotSeed ? " (+seed)" : ""));
+  state.planters[slot] = undefined;
+}
+function plantSeed(slot, id) {
+  if ((state.seeds[id] || 0) <= 0) return;
+  state.seeds[id] -= 1;
+  state.planters[slot] = { herbId: id, plantedDay: state.dayCount };
+  plantMenu = null;
+  toast("Planted " + ITEMS[id].name + " — ready in " + GROW_DAYS + "d.");
+}
+
+/* ---------- Merchant shop (buy seeds, sell goods) ---------- */
+function actShop() { shopOpen = true; }
+function buySeed(id) {
+  if (state.coin < SEED_COST) { toast("Not enough coin."); return; }
+  state.coin -= SEED_COST;
+  state.seeds[id] = (state.seeds[id] || 0) + 1;
+  toast("Bought a " + ITEMS[id].name + " seed.");
+}
+function sellItem(id) {
+  if ((state.inv[id] || 0) <= 0) return;
+  const price = id === RECIPE.makes ? ITEMS[id].sell : HERB_SELL;
+  state.inv[id] -= 1;
+  state.coin += price;
+  state.todayLog.push("Sold a " + ITEMS[id].name + " (+" + price + ")");
 }
 
 // Tapping the cauldron opens the dedicated brewing screen.
@@ -954,14 +1036,6 @@ function actBrew() {
   }
 }
 
-function actSell() {
-  const id = "lavender_calm_tonic";
-  if ((state.inv[id] || 0) <= 0) { startDialogue(DIALOGUE.merchant_empty); return; }
-  state.inv[id] -= 1;
-  state.coin += ITEMS[id].sell;
-  state.todayLog.push("Sold a " + ITEMS[id].name + " (+" + ITEMS[id].sell + ")");
-  startDialogue(DIALOGUE.merchant_sell);
-}
 
 function actFriend() {
   const first = !state.flags.metFriend;
@@ -1061,6 +1135,8 @@ onMousePress(() => {
   if (introLetter)   { introLetter = false; showTimetable = true; return; } // letter -> timetable
   if (showTimetable) { showTimetable = false; return; }
   if (nightSummary)  { advanceDay(); return; }         // sleep recap -> next day
+  if (shopOpen)   { handleShopTap(m); return; }        // merchant shop owns taps
+  if (plantMenu)  { handlePlantTap(m); return; }       // seed chooser owns taps
   if (journalOpen) { handleBosTap(m); return; }        // Book of Shadows owns taps
   if (dialogue) {                                      // tap advances dialogue
     dialogue.idx += 1;
@@ -1094,7 +1170,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || path.length === 0) return;
+  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
@@ -1197,6 +1273,29 @@ onDraw(() => {
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
   for (const o of r.inters) {
     const p = pulse();
+
+    // garden planters: soil bed; show seedling growth -> ripe crop
+    if (o.planterSlot !== undefined) {
+      const pl = state.planters[o.planterSlot];
+      drawRect({ pos: vec2(o.gx * TILE + 3, ORIGIN_Y + o.gy * TILE + 9), width: TILE - 6, height: TILE - 12,
+                 color: rgb(82, 60, 44), radius: 3, outline: { color: rgb(54, 38, 28), width: 1 } });
+      let label = "Planter", actionable = true, ideal = false;
+      if (pl) {
+        const age = state.dayCount - pl.plantedDay, ripe = age >= GROW_DAYS;
+        actionable = ripe;
+        ideal = ripe && isIdealMoon(pl.herbId);
+        const sz = ripe ? PROP_DRAW : 18 + Math.min(age, GROW_DAYS) * 5;
+        if (ready("herb")) drawSprite({ sprite: "herb", anchor: "bot",
+          pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: sz, height: sz, opacity: ripe ? 1 : 0.85 });
+        label = ripe ? ITEMS[pl.herbId].name + " ready!" : ITEMS[pl.herbId].name + " (" + (GROW_DAYS - age) + "d)";
+      }
+      if (actionable) drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+        color: rgb(0, 0, 0), opacity: 0, outline: { color: ideal ? rgb(255, 240, 170) : rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+      drawText({ text: label, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1), size: 8, anchor: "center",
+        width: TILE * 2.6, color: ideal ? rgb(255, 240, 170) : (pl ? rgb(230, 225, 245) : rgb(180, 165, 140)) });
+      continue;
+    }
+
     // greenhouse pots (o.herbId) show ripe vs regrowing, with stock + moon cue
     const isPot = !!o.herbId;
     let ripe = true, stock = 0, daysLeft = 0, ideal = false;
@@ -1270,8 +1369,10 @@ onDraw(() => {
   drawHUD(r);
   if (brewUI)         drawBrew();
   if (journalOpen)    drawJournal();
+  if (shopOpen)       drawShop();
+  if (plantMenu)      drawPlantMenu();
   if (dialogue)       drawDialogue();
-  else if (toastMsg && !brewUI && !journalOpen) drawToast();
+  else if (toastMsg && !brewUI && !journalOpen && !shopOpen && !plantMenu) drawToast();
   if (nightSummary)   drawNight();
   if (showTimetable)  drawTimetable();
   if (introLetter)    drawLetter();
@@ -1413,6 +1514,90 @@ function drawTimetable() {
   }
   drawText({ text: "(tap to close)", pos: vec2(CANVAS_W / 2, by + bh - 16), size: 11, font: hf(),
              color: rgb(120, 95, 80), anchor: "center" });
+}
+
+/* ---------- Merchant shop overlay ---------- */
+function shopRows() {
+  const rows = [], x = 22, w = CANVAS_W - 44, H = 21; let y = 96;
+  const push = (o) => { o.x = x; o.y = y; o.w = w; o.h = H; rows.push(o); y += H; };
+  push({ type: "hdr", label: "Buy seeds  (" + SEED_COST + "c each)" });
+  let anyBuy = false;
+  for (const id of HERB_ORDER) {
+    if (!state.herbsKnown[id]) continue; anyBuy = true;
+    push({ type: "buy", id, label: ITEMS[id].name + " seed", sub: "have " + (state.seeds[id] || 0), price: SEED_COST });
+  }
+  if (!anyBuy) push({ type: "note", label: "(study herbs to unlock their seeds)" });
+  y += 6;
+  push({ type: "hdr", label: "Sell" });
+  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && (id === RECIPE.makes || (ITEMS[id] && ITEMS[id].kind === "herb")));
+  if (!sellable.length) push({ type: "note", label: "(nothing to sell)" });
+  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: id === RECIPE.makes ? ITEMS[id].sell : HERB_SELL });
+  y += 8;
+  push({ type: "close", label: "Close" });
+  return rows;
+}
+function drawShop() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.86 });
+  drawRect({ pos: vec2(14, 44), width: CANVAS_W - 28, height: CANVAS_H - 80, color: rgb(34, 28, 44), radius: 10,
+             outline: { color: rgb(150, 120, 60), width: 2 } });
+  drawText({ text: "Merchant", pos: vec2(CANVAS_W / 2, 56), size: 16, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: "Coin " + state.coin, pos: vec2(CANVAS_W / 2, 78), size: 11, color: rgb(255, 235, 175), anchor: "center" });
+  for (const b of shopRows()) {
+    if (b.type === "hdr") {
+      drawText({ text: b.label, pos: vec2(b.x, b.y + 4), size: 12, color: rgb(190, 175, 220) });
+    } else if (b.type === "note") {
+      drawText({ text: b.label, pos: vec2(b.x + 6, b.y + 4), size: 10, color: rgb(150, 150, 170) });
+    } else {
+      const accent = b.type === "close" ? rgb(150, 130, 200) : (b.type === "buy" ? rgb(120, 180, 130) : rgb(220, 170, 110));
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h - 3, color: rgb(46, 40, 58), radius: 5, outline: { color: accent, width: 1 } });
+      if (b.type === "close") {
+        drawText({ text: "Close", pos: vec2(b.x + b.w / 2, b.y + 5), size: 12, color: rgb(220, 220, 235), anchor: "center" });
+      } else {
+        drawText({ text: b.label, pos: vec2(b.x + 8, b.y + 5), size: 11, color: rgb(225, 225, 240) });
+        if (b.sub) drawText({ text: b.sub, pos: vec2(b.x + b.w - 70, b.y + 5), size: 9, color: rgb(160, 160, 180), anchor: "right" });
+        drawText({ text: (b.type === "buy" ? "-" : "+") + b.price + "c", pos: vec2(b.x + b.w - 8, b.y + 5), size: 11, color: accent, anchor: "right" });
+      }
+    }
+  }
+}
+function handleShopTap(m) {
+  for (const b of shopRows()) {
+    if (!pointIn(m, b)) continue;
+    if (b.type === "close") shopOpen = false;
+    else if (b.type === "buy") buySeed(b.id);
+    else if (b.type === "sell") sellItem(b.id);
+    return;
+  }
+}
+
+/* ---------- Plant-a-seed chooser ---------- */
+function plantRows() {
+  const rows = [], x = 44, w = CANVAS_W - 88, H = 26; let y = 150;
+  for (const id of HERB_ORDER) {
+    if ((state.seeds[id] || 0) <= 0) continue;
+    rows.push({ x, y, w, h: H, id, label: ITEMS[id].name + " seed  (have " + state.seeds[id] + ")" }); y += H + 4;
+  }
+  rows.push({ x, y: y + 6, w, h: H, id: null, label: "Cancel" });
+  return rows;
+}
+function drawPlantMenu() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.82 });
+  drawText({ text: "Plant which seed?", pos: vec2(CANVAS_W / 2, 116), size: 15, color: rgb(255, 230, 175), anchor: "center" });
+  for (const b of plantRows()) {
+    const isCancel = b.id === null;
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(46, 40, 58), radius: 6,
+               outline: { color: isCancel ? rgb(150, 130, 200) : rgb(120, 180, 130), width: 1 } });
+    drawText({ text: b.label, pos: vec2(b.x + b.w / 2, b.y + b.h / 2), size: 12,
+               color: rgb(225, 225, 240), anchor: "center" });
+  }
+}
+function handlePlantTap(m) {
+  for (const b of plantRows()) {
+    if (!pointIn(m, b)) continue;
+    if (b.id === null) plantMenu = null;
+    else plantSeed(plantMenu.slot, b.id);
+    return;
+  }
 }
 
 /* ---------- Field journal: a parchment page of studies + takeaways ---------- */
