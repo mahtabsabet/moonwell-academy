@@ -768,8 +768,8 @@ const ready = (k) => READY.has(k);
 
 /* ---------- Mutable game state ---------- */
 let state;
-function resetGame() {
-  state = {
+function freshState() {
+  return {
     roomId: "dorm",
     inv: { lavender: 0, lavender_calm_tonic: 0 },
     knownRecipes: {},     // recipe id -> true
@@ -787,6 +787,9 @@ function resetGame() {
     todayLog: [],         // events for tonight's recap
     flags: { metFriend: false },
   };
+}
+function newGame() {
+  state = freshState();
   player = { px: 0, py: 0, gx: 5, gy: 9, dir: "up" };
   path = [];
   pendingAction = null;
@@ -802,11 +805,46 @@ function resetGame() {
   plantMenu = null;      // { slot } — choose a seed to plant
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
+  save();                // persist the fresh game
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary, shopOpen, plantMenu;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, resetArmed = false;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
+
+/* ---------- Save / load (localStorage) ---------- */
+const SAVE_KEY = "moonwell_save_v1";
+function save() {
+  try {
+    const snap = JSON.parse(JSON.stringify(state));
+    // include any herbs currently steeping so a mid-brew save never loses them
+    if (brewUI && brewUI.contents) for (const id of brewUI.contents)
+      if (ITEMS[id] && ITEMS[id].kind === "herb") snap.inv[id] = (snap.inv[id] || 0) + 1;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ state: snap, p: { gx: player.gx, gy: player.gy, dir: player.dir } }));
+  } catch (e) { /* storage unavailable (private mode etc.) — ignore */ }
+}
+// Boot: restore a save if present, else start a new game.
+function bootGame() {
+  let data = null;
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) data = JSON.parse(raw); } catch (e) { data = null; }
+  if (!data || !data.state) { newGame(); return; }
+  state = Object.assign(freshState(), data.state);   // fill any missing keys with defaults
+  // transient (never saved)
+  player = { px: 0, py: 0, gx: 5, gy: 9, dir: "down" };
+  path = []; pendingAction = null; pendingDoor = null;
+  dialogue = null; toastMsg = null; brewUI = null; journalOpen = false; bosPage = 0;
+  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null;
+  syncGreenhousePots();
+  const p = data.p || { gx: 5, gy: 9, dir: "down" };
+  state.roomId = state.roomId || "dorm";
+  placePlayer(p.gx, p.gy, p.dir);
+}
+// Wipe the save and start over (used by the Reset button).
+function resetGame() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  resetArmed = false;
+  newGame();
+}
 
 /* ---------- Tiny helpers ---------- */
 const room   = () => ROOMS[state.roomId];
@@ -924,7 +962,8 @@ function onArrive() {
 }
 
 /* ---------- Interactions ---------- */
-function doAction(o) {
+function doAction(o) { dispatchAction(o); save(); }
+function dispatchAction(o) {
   switch (o.action) {
     case "class":   return actClass(o.subject);
     case "forage":  return actForage(o);
@@ -1052,7 +1091,9 @@ function isIdealMoon(id) {
 }
 
 // Open the Book of Shadows (overview + a page per studied herb).
-function actJournal() { journalOpen = true; bosPage = 0; }
+function actJournal() { journalOpen = true; bosPage = 0; resetArmed = false; }
+// Reset button rect (overview page of the Book of Shadows).
+function resetBtn() { return { x: CANVAS_W / 2 - 70, y: 404, w: 140, h: 24 }; }
 
 // Tapping the dorm timetable shows the weekly schedule.
 function actTimetable() { showTimetable = true; }
@@ -1109,6 +1150,7 @@ function plantSeed(slot, id) {
   state.planters[slot] = { herbId: id, plantedDay: state.dayCount };
   plantMenu = null;
   toast("Planted " + ITEMS[id].name + " — ready in " + GROW_DAYS + "d.");
+  save();
 }
 
 /* ---------- Merchant shop (buy seeds, sell goods) ---------- */
@@ -1118,6 +1160,7 @@ function buySeed(id) {
   state.coin -= SEED_COST;
   state.seeds[id] = (state.seeds[id] || 0) + 1;
   toast("Bought a " + ITEMS[id].name + " seed.");
+  save();
 }
 function sellItem(id) {
   if ((state.inv[id] || 0) <= 0) return;
@@ -1125,6 +1168,7 @@ function sellItem(id) {
   state.inv[id] -= 1;
   state.coin += price;
   state.todayLog.push("Sold a " + ITEMS[id].name + " (+" + price + ")");
+  save();
 }
 
 // Tapping the cauldron opens the dedicated brewing screen.
@@ -1164,6 +1208,7 @@ function advanceDay() {
   for (const id in state.pots) refreshPot(id);   // pots regrow overnight
   loadRoom("dorm", 5, 9);   // wake up at home
   toast("Day " + state.dayCount + " — " + weekday() + ". Good morning!");
+  save();
 }
 
 /* ---------- Brewing screen logic ----------
@@ -1225,6 +1270,7 @@ function brewAttempt() {
     state.inv[mk] = (state.inv[mk] || 0) + 1;
     state.todayLog.push("Brewed a " + ITEMS[mk].name);
     brewUI.msg = "Success — a " + ITEMS[mk].fullName + "!";
+    save();
   } else if (matchId) {
     brewReturnContents();          // right mix, but not yet taught
     brewUI.msg = "These do combine... but you've not learned this recipe yet.";
@@ -1755,8 +1801,13 @@ function bosButtons() {
   ];
 }
 function handleBosTap(m) {
+  if (bosPage === 0 && pointIn(m, resetBtn())) {     // reset (two-tap confirm)
+    if (resetArmed) resetGame(); else resetArmed = true;
+    return;
+  }
   for (const b of bosButtons()) {
     if (!pointIn(m, b)) continue;
+    resetArmed = false;                              // any nav cancels a pending reset
     if (b.id === "close") journalOpen = false;
     else if (b.id === "prev") bosPage = Math.max(0, bosPage - 1);
     else if (b.id === "next") bosPage = Math.min(bosTotalPages() - 1, bosPage + 1);
@@ -1808,6 +1859,17 @@ function drawBosOverview(px, py, pw, ph) {
              size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
   drawText({ text: studied ? "Turn the page for your plant entries." : "Attend Herbology to fill these pages.",
              pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
+
+  // autosave note + reset button
+  drawText({ text: "Your progress saves automatically.", pos: vec2(px + pw / 2, 392), size: 10, font: hf(),
+             color: rgb(120, 100, 80), anchor: "center" });
+  const rb = resetBtn();
+  drawRect({ pos: vec2(rb.x, rb.y), width: rb.w, height: rb.h, radius: 6,
+             color: resetArmed ? rgb(150, 60, 55) : rgb(70, 50, 46),
+             outline: { color: rgb(190, 90, 80), width: 1 } });
+  drawText({ text: resetArmed ? "Tap again to confirm" : "Reset game",
+             pos: vec2(rb.x + rb.w / 2, rb.y + rb.h / 2), size: 12, font: hf(),
+             color: rgb(245, 220, 215), anchor: "center" });
 }
 
 function drawHerbPage(id, px, py, pw, ph) {
@@ -2031,7 +2093,12 @@ function drawGrimoire() {
 }
 
 /* ---------- Go! ---------- */
-resetGame();
+bootGame();
+// safety-net autosave when the tab is backgrounded or closed (mobile-friendly)
+try {
+  document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+  window.addEventListener("pagehide", save);
+} catch (e) {}
 </script>
 </body>
 </html>
