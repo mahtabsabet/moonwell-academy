@@ -161,11 +161,17 @@ one dream item, no overlap.
 | Craft | Form | Ingredients | Heat | Effect | Grounding |
 |---|---|---|---|---|---|
 | **Lavender Calm Tonic** | tea | spring water + lavender | steep | calm, restful **sleep** | Lavender tea is a documented calming/sleep infusion. |
-| **Basil Floor Wash** | wash | spring water + basil | simmer | cleanse & protect a space | Real Hoodoo/folk floor wash. |
-| **Prosperity Oil** | oil | spring water + mint + basil | warm gently | money & luck (anoint) | Mint & basil are core money-drawing herbs; anointing oils are standard. |
+| **Prosperity Oil** | oil | spring water + basil | warm gently | money & luck (anoint) | Basil is a classic money/"draw custom" herb; anointing oils are standard. |
+| **Mint Cleansing Wash** | wash | spring water + mint | simmer | purify a space/tool/self | Mint is a traditional purification/cleansing herb. |
 | **Mugwort Dream Tea** | tea | spring water + mugwort | steep | vivid, prophetic **dreams** | The classic oneirogen dream tea (steep below boiling). |
 | **Dandelion Seer's Tea** | tea | moon water + dandelion | simmer | **divination** & clear sight | Cunningham: dandelion-root tea for divination. |
 | **Rose Love Oil** | oil | spring water + rose | warm gently | love & comfort (anoint/gift) | Rose = love/Venus; rose-infused anointing oils are traditional. |
+| **Witch's Bottle** | carried charm | salt + rosemary | seal/char | **protection** (+defense) | Real protective charm: salt + rosemary (often + iron pins) sealed in a bottle, carried or buried. |
+
+*Rosemary is now a core (7th) plant. Protection moved off basil (basil = prosperity)
+onto the salt-based Witch's Bottle. The bottle raises a **defense** stat — a hook for
+a future light combat/encounter layer (a deliberate step beyond the original cozy
+"no combat" pillar).*
 
 Forms map to heat naturally: **warm gently** for oils (don't scorch), **steep**
 (just below a boil) for teas, **simmer hard** for washes and root decoctions.
@@ -224,4 +230,6 @@ Potion practices:
 - Rosewater (making + love/cleansing magic) — [Sacred Wicca — rose water recipe](https://sacredwicca.com/rose-water-recipe) · [Moonlight Mysteries](https://www.moonlightmysteries.com/blog/unlock-the-magic-rose-water-in-your-craft/)
 - Dandelion-root divination tea — [LearnReligions](https://www.learnreligions.com/dandelion-magic-and-folklore-4588986) · [Greenman Meadows](https://greenmanmeadows.com/dandelion-magic/)
 - Moon water — [The Pagan Grimoire](https://www.pagangrimoire.com/moon-water/)
+- Witch's bottle (salt + rosemary protection charm) — [The Pagan Grimoire — Witch's Bottle](https://www.pagangrimoire.com/witch-bottle/) · salt as protection: [Learn Religions](https://www.learnreligions.com/salt-in-magic-and-folklore-2562823)
+- Rosemary (protection/memory/purification) — [LearnReligions — rosemary magic](https://www.learnreligions.com/rosemary-history-and-folklore-2562383)
 

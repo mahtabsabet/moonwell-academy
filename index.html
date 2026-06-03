@@ -151,11 +151,29 @@ const ITEMS = {
       { s: "Prof. Sage", t: "A handful in the bath eases the mind as surely as any tonic." },
     ],
   },
+  rosemary: {
+    name: "Rosemary", kind: "herb", color: [110, 150, 120],
+    botanical: "Salvia rosmarinus",
+    gender: "Masculine", planet: "Sun", element: "Fire",
+    powers: ["protection", "purification", "memory", "love"],
+    herbal: "Protective sprigs at the door; a memory-and-focus tonic; cleansing baths.",
+    safety: "Culinary-safe; medicinal amounts best avoided in pregnancy.",
+    lore: "Rosemary remembers and guards. Hang it at the door, or carry it for protection and a clear, sharp mind.",
+    lesson: [
+      { s: "Prof. Sage", t: "Rosemary — Salvia rosmarinus. A herb of the Sun and Fire, strong and protective." },
+      { s: "Prof. Sage", t: "It guards a home and sharpens memory; 'rosemary for remembrance,' as they say." },
+      { s: "Prof. Sage", t: "Sealed with salt in a bottle, it makes a powerful ward to carry against harm." },
+    ],
+  },
   spring_water: {
     name: "Spring Water",
     kind: "base",
     color: [120, 180, 230],
     lore: "Fresh, living water — the base of any gentle tonic.",
+  },
+  salt: {
+    name: "Salt", kind: "base", color: [232, 232, 238],
+    lore: "The oldest protection — salt wards, cleanses, and seals.",
   },
   lavender_calm_tonic: {
     name: "Calm Tonic", fullName: "Lavender Calm Tonic", kind: "potion",
@@ -167,7 +185,7 @@ const ITEMS = {
     color: [150, 150, 118], sell: 30,
     lore: "Steeped just below a boil — it opens the gate to vivid, prophetic dreams.",
   },
-  basil_wash: {
+  basil_wash: {  // legacy: no longer craftable, kept so old saves still display it
     name: "Floor Wash", fullName: "Basil Floor Wash", kind: "potion",
     color: [110, 170, 95], sell: 22,
     lore: "Simmered basil to cleanse and protect — wash from the back of the home to the front.",
@@ -175,12 +193,22 @@ const ITEMS = {
   prosperity_oil: {
     name: "Prosperity Oil", fullName: "Prosperity Oil", kind: "potion",
     color: [150, 200, 120], sell: 35,
-    lore: "Mint and basil warmed into oil — anoint coins, candles, or your door to draw money.",
+    lore: "Basil warmed into oil — anoint coins, candles, or your door to draw money and custom.",
+  },
+  mint_wash: {
+    name: "Cleansing Wash", fullName: "Mint Cleansing Wash", kind: "potion",
+    color: [120, 200, 150], sell: 22,
+    lore: "Brisk mint, simmered — wash to purify a space, a tool, or yourself.",
   },
   rose_love_oil: {
     name: "Love Oil", fullName: "Rose Love Oil", kind: "potion",
     color: [230, 140, 160], sell: 30,
     lore: "Rose petals warmed gently into oil — anoint yourself for love and comfort, or gift it.",
+  },
+  witch_bottle: {
+    name: "Witch's Bottle", fullName: "Witch's Bottle", kind: "potion",
+    color: [90, 78, 100], sell: 20, defense: 5,
+    lore: "Salt and rosemary sealed in glass — carried as a ward; turns harm aside. (+defense)",
   },
   wishing_brew: {
     name: "Seer's Tea", fullName: "Dandelion Seer's Tea", kind: "potion",
@@ -195,13 +223,13 @@ const ITEMS = {
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
-const HERB_ORDER = ["lavender", "basil", "mint", "mugwort", "dandelion", "rose"];
+const HERB_ORDER = ["lavender", "basil", "mint", "mugwort", "dandelion", "rose", "rosemary"];
 
 // Greenhouse pots: learning a herb grows a pot at its slot near Prof. Sage.
 // Each pot yields POT_FULL picks; emptied pots regrow after REGROW_DAYS days.
 const POT_FULL = 2;
 const REGROW_DAYS = 3;
-const POT_SLOTS = [[2, 5], [5, 5], [8, 5], [2, 7], [5, 7], [8, 7]]; // by HERB_ORDER index
+const POT_SLOTS = [[2, 5], [5, 5], [8, 5], [2, 7], [5, 7], [8, 7], [5, 9]]; // by HERB_ORDER index
 
 // Herb Garden: plant seeds in planters, grow over GROW_DAYS, harvest. Seeds are
 // bought from the merchant (SEED_COST) or drop while foraging (SEED_DROP_CHANCE).
@@ -229,17 +257,17 @@ const RECIPES = {
     does: "Vivid, prophetic dreams.",
     method: "Warm spring water just below a boil, steep mugwort, sip before bed.",
   },
-  basil_wash: {
-    id: "basil_wash", name: "Basil Floor Wash", herb: "basil", heat: "high",
-    needs: { spring_water: 1, basil: 1 }, makes: "basil_wash",
-    does: "Cleanses & protects a space.",
-    method: "Simmer basil in water; wash floors and thresholds, back of the home to the front.",
-  },
   prosperity_oil: {
-    id: "prosperity_oil", name: "Prosperity Oil", herb: "mint", heat: "low",
-    needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_oil",
+    id: "prosperity_oil", name: "Prosperity Oil", herb: "basil", heat: "low",
+    needs: { spring_water: 1, basil: 1 }, makes: "prosperity_oil",
     does: "Draws money & luck. Anoint coins, candles, or the door.",
-    method: "Warm mint and basil gently into oil; never let it boil.",
+    method: "Warm basil gently into oil; never let it boil.",
+  },
+  mint_wash: {
+    id: "mint_wash", name: "Mint Cleansing Wash", herb: "mint", heat: "high",
+    needs: { spring_water: 1, mint: 1 }, makes: "mint_wash",
+    does: "Purifies a space, a tool, or you.",
+    method: "Simmer mint briskly; sprinkle or wipe to cleanse.",
   },
   rose_love_oil: {
     id: "rose_love_oil", name: "Rose Love Oil", herb: "rose", heat: "low",
@@ -253,8 +281,14 @@ const RECIPES = {
     does: "Divination & clear sight. (Full moon.)",
     method: "Simmer dandelion root in moon water; sip, or leave it steaming by the bed.",
   },
+  witch_bottle: {
+    id: "witch_bottle", name: "Witch's Bottle", herb: "rosemary", heat: "high",
+    needs: { salt: 1, rosemary: 1 }, makes: "witch_bottle",
+    does: "A ward you carry. (+defense)",
+    method: "Char the salt with rosemary and seal it in glass; keep it on you or by the door.",
+  },
 };
-const RECIPE_ORDER = ["calm_tonic", "basil_wash", "prosperity_oil", "dream_tea", "wishing_brew", "rose_love_oil"];
+const RECIPE_ORDER = ["calm_tonic", "prosperity_oil", "mint_wash", "dream_tea", "wishing_brew", "rose_love_oil", "witch_bottle"];
 const HEATS = ["low", "med", "high"];
 const heatWord = (h) => ({ low: "warm gently", med: "steep", high: "simmer hard" }[h] || h);
 
@@ -402,7 +436,7 @@ const moonWaxing = () => moonFrac() < 0.5;
 // divinatory herbs peak at the full moon). Shown in the Book of Shadows.
 const HERB_MOON = {
   lavender: "Waxing", basil: "Waxing", mint: "Waxing",
-  mugwort: "Full", dandelion: "Full", rose: "Waxing",
+  mugwort: "Full", dandelion: "Full", rose: "Waxing", rosemary: "Waxing",
 };
 
 /* ---------- Maps ----------
@@ -1235,7 +1269,7 @@ function sameCounts(a, b) {
 
 // Ingredients you can drop into the pot right now.
 function pantry() {
-  const list = [{ id: "spring_water", n: Infinity }]; // always available at the cauldron
+  const list = [{ id: "spring_water", n: Infinity }, { id: "salt", n: Infinity }]; // always at the cauldron
   if (moonPhase().name === "Full Moon") list.push({ id: "moon_water", n: Infinity }); // only at the full moon
   for (const id in state.inv) {
     if (ITEMS[id].kind === "herb" && state.inv[id] > 0) list.push({ id, n: state.inv[id] });
@@ -1300,6 +1334,12 @@ function itemIcon(id) {
   if (ready("item_" + id)) return "item_" + id;
   if (ITEMS[id] && ITEMS[id].kind === "herb" && ready("herb_" + id)) return "herb_" + id;
   return null;
+}
+// Total defense from carried wards (used by the future combat layer).
+function defense() {
+  let d = 0;
+  for (const id in state.inv) if (ITEMS[id] && ITEMS[id].defense) d += ITEMS[id].defense * state.inv[id];
+  return d;
 }
 
 /* ---------- Objective hint (gentle, cozy guidance) ---------- */
@@ -1853,7 +1893,9 @@ function drawBosOverview(px, py, pw, ph) {
   let y = py + 14, x = px + 16;
   drawText({ text: "Book of Shadows", pos: vec2(px + pw / 2, y), size: 20, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 26;
   drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
-             size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 24;
+             size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 18;
+  drawText({ text: "Defense " + defense() + (defense() ? "  (carrying a ward)" : "  (carry a Witch's Bottle)"),
+             pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 22;
   drawText({ text: "Studies", pos: vec2(x, y), size: 15, font: hf(), color: rgb(96, 58, 110) }); y += 18;
   for (const id in SUBJECTS) {
     const lvl = state.skills[id] || 0;
