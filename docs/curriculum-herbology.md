@@ -154,18 +154,27 @@ Each potion below maps to a real, citeable practice (sources at the bottom).
 Heat matters: **warm gently** (preserve delicate florals), **steep** (just below
 a boil — keeps volatile oils), **simmer hard** (decoctions of roots, and washes).
 
-| Potion | Ingredients | Heat | Effect | Grounding |
-|---|---|---|---|---|
-| **Lavender Calm Tonic** | spring water + lavender | steep | calm, restful sleep | Lavender tea is a well-documented calming/sleep infusion. |
-| **Basil Floor Wash** | spring water + basil | simmer | cleanse & protect a space | Real Hoodoo/folk floor wash; basil = protection/cleansing. |
-| **Mugwort Dream Tea** | spring water + mugwort | steep | vivid, prophetic dreams | Mugwort is the classic oneirogen dream tea (steep below boiling). |
-| **Prosperity Tea** | spring water + mint + basil | steep | draws money & luck | Mint + basil are core money-drawing herbs in folk tea/spells. |
-| **Heart's-Ease Rosewater** | spring water + rose | warm gently | love, comfort, soft sight | Real rosewater (petals warmed gently); rose = love/Venus. |
-| **Dandelion Seer's Tea** | moon water + dandelion | simmer | divination & prophetic dreams | Cunningham: dandelion-root tea for divination/prophetic dreams. |
-| **Moonlit Dreaming Draught** | moon water + mugwort + lavender | steep | deep, lucid dreams | Mugwort + lavender is a classic dream-tea blend. |
+One craft per herb, spread across **forms** (tea to drink, oil to anoint/gift,
+wash to clean a space) and across **distinct effects** — only one sleep item and
+one dream item, no overlap.
 
-**Moon water** (a base that only appears at the Full Moon) gates the two
-psychic/divinatory brews — a real practice (water charged under the full moon).
+| Craft | Form | Ingredients | Heat | Effect | Grounding |
+|---|---|---|---|---|---|
+| **Lavender Calm Tonic** | tea | spring water + lavender | steep | calm, restful **sleep** | Lavender tea is a documented calming/sleep infusion. |
+| **Basil Floor Wash** | wash | spring water + basil | simmer | cleanse & protect a space | Real Hoodoo/folk floor wash. |
+| **Prosperity Oil** | oil | spring water + mint + basil | warm gently | money & luck (anoint) | Mint & basil are core money-drawing herbs; anointing oils are standard. |
+| **Mugwort Dream Tea** | tea | spring water + mugwort | steep | vivid, prophetic **dreams** | The classic oneirogen dream tea (steep below boiling). |
+| **Dandelion Seer's Tea** | tea | moon water + dandelion | simmer | **divination** & clear sight | Cunningham: dandelion-root tea for divination. |
+| **Rose Love Oil** | oil | spring water + rose | warm gently | love & comfort (anoint/gift) | Rose = love/Venus; rose-infused anointing oils are traditional. |
+
+Forms map to heat naturally: **warm gently** for oils (don't scorch), **steep**
+(just below a boil) for teas, **simmer hard** for washes and root decoctions.
+
+**Moon water** (a base that only appears at the Full Moon) gates the Seer's Tea
+— a real practice (water charged under the full moon).
+
+*Future forms (need a dry-crafting step, e.g. the mortar): incense to burn,
+sachets/dream-pillows to carry, powders.*
 
 Potions are sold in the Village, and are the hook for future use by other
 classes (a dream tea before the observatory, etc.) and NPC gifts.

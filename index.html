@@ -172,29 +172,24 @@ const ITEMS = {
     color: [110, 170, 95], sell: 22,
     lore: "Simmered basil to cleanse and protect — wash from the back of the home to the front.",
   },
-  prosperity_tea: {
-    name: "Prosperity Tea", fullName: "Prosperity Tea", kind: "potion",
+  prosperity_oil: {
+    name: "Prosperity Oil", fullName: "Prosperity Oil", kind: "potion",
     color: [150, 200, 120], sell: 35,
-    lore: "Mint and basil, stirred for increase — draws money and good fortune.",
+    lore: "Mint and basil warmed into oil — anoint coins, candles, or your door to draw money.",
   },
-  heartsease_rosewater: {
-    name: "Rosewater", fullName: "Heart's-Ease Rosewater", kind: "potion",
+  rose_love_oil: {
+    name: "Love Oil", fullName: "Rose Love Oil", kind: "potion",
     color: [230, 140, 160], sell: 30,
-    lore: "Rose petals warmed gently — for love, comfort, and a softer sight.",
+    lore: "Rose petals warmed gently into oil — anoint yourself for love and comfort, or gift it.",
   },
   wishing_brew: {
     name: "Seer's Tea", fullName: "Dandelion Seer's Tea", kind: "potion",
     color: [240, 210, 90], sell: 40,
-    lore: "Dandelion root in moon water — for divination and prophetic dreams; leave it steaming by the bed to call spirits.",
-  },
-  dreaming_draught: {
-    name: "Dreaming Draught", fullName: "Moonlit Dreaming Draught", kind: "potion",
-    color: [170, 150, 230], sell: 55,
-    lore: "Mugwort and lavender steeped in moon water — deep, gentle, true dreams.",
+    lore: "Dandelion root in moon water — sip for divination and clear sight, or leave it steaming by the bed to call spirits.",
   },
   moon_water: {
     name: "Moon Water", kind: "base", color: [190, 200, 235],
-    lore: "Spring water charged under the full moon — potent for wishes and dreams.",
+    lore: "Spring water charged under the full moon — potent for divination.",
   },
 };
 
@@ -240,32 +235,26 @@ const RECIPES = {
     does: "Cleanses & protects a space.",
     method: "Simmer basil in water; wash floors and thresholds, back of the home to the front.",
   },
-  prosperity_tea: {
-    id: "prosperity_tea", name: "Prosperity Tea", herb: "mint", heat: "med",
-    needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_tea",
-    does: "Draws money and luck.",
-    method: "Steep mint and basil together; stir clockwise for increase.",
+  prosperity_oil: {
+    id: "prosperity_oil", name: "Prosperity Oil", herb: "mint", heat: "low",
+    needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_oil",
+    does: "Draws money & luck. Anoint coins, candles, or the door.",
+    method: "Warm mint and basil gently into oil; never let it boil.",
   },
-  rosewater: {
-    id: "rosewater", name: "Heart's-Ease Rosewater", herb: "rose", heat: "low",
-    needs: { spring_water: 1, rose: 1 }, makes: "heartsease_rosewater",
-    does: "Love, comfort, softer sight.",
-    method: "Warm rose petals gently — never let it boil.",
+  rose_love_oil: {
+    id: "rose_love_oil", name: "Rose Love Oil", herb: "rose", heat: "low",
+    needs: { spring_water: 1, rose: 1 }, makes: "rose_love_oil",
+    does: "Love, comfort. Anoint yourself, or gift it.",
+    method: "Warm rose petals gently into oil — never let it boil.",
   },
   wishing_brew: {
     id: "wishing_brew", name: "Dandelion Seer's Tea", herb: "dandelion", heat: "high",
     needs: { moon_water: 1, dandelion: 1 }, makes: "wishing_brew",
-    does: "Divination & prophetic dreams. (Full moon.)",
+    does: "Divination & clear sight. (Full moon.)",
     method: "Simmer dandelion root in moon water; sip, or leave it steaming by the bed.",
   },
-  dreaming_draught: {
-    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort", heat: "med",
-    needs: { moon_water: 1, mugwort: 1, lavender: 1 }, makes: "dreaming_draught",
-    does: "Deep, lucid, prophetic dreams. (Full moon.)",
-    method: "Steep mugwort and lavender in moon water just below a boil to keep the oils.",
-  },
 };
-const RECIPE_ORDER = ["calm_tonic", "basil_wash", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
+const RECIPE_ORDER = ["calm_tonic", "basil_wash", "prosperity_oil", "dream_tea", "wishing_brew", "rose_love_oil"];
 const HEATS = ["low", "med", "high"];
 const heatWord = (h) => ({ low: "warm gently", med: "steep", high: "simmer hard" }[h] || h);
 
@@ -1599,7 +1588,7 @@ function drawHUD(r) {
              color: rgb(210, 210, 235), anchor: "right" });
 
   // inventory chips — compact (icon/colour + count) so the whole satchel fits
-  const held = Object.keys(state.inv).filter((id) => state.inv[id] > 0);
+  const held = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id]);
   if (!held.length) {
     drawText({ text: "Bag: empty", pos: vec2(8, 41), size: 9, color: rgb(150, 150, 170) });
   } else {
