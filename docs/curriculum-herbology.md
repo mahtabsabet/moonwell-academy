@@ -148,20 +148,27 @@ All real, beginner-friendly, and well-attested:
 These pair naturally with the other classes (rosemary ↔ Kitchen Witchery, yarrow/
 mugwort ↔ Divination, chamomile ↔ sleep/lunar work).
 
-## Potions & Alchemy tie-in
+## Potions & Alchemy — the recipes (as implemented)
 
-Potions class teaches **methods** (infusion, decoction, oil, sachet, bath) and
-**recipes** that consume studied herbs. A natural progression:
+Each potion below maps to a real, citeable practice (sources at the bottom).
+Heat matters: **warm gently** (preserve delicate florals), **steep** (just below
+a boil — keeps volatile oils), **simmer hard** (decoctions of roots, and washes).
 
-1. **Infusions (tier 1):** single-herb teas/tonics — Lavender Calm Tonic, Clear-Mind
-   Mint Tea, Dandelion Seer's Tea.
-2. **Sachets & pillows:** Mugwort Dream-Pillow, Rose Heart's-Ease sachet.
-3. **Oils & washes:** Basil Hearthguard Oil, Mint purifying wash.
-4. **Combinations (tier 2):** 2–3 herb recipes once several plants are known —
-   e.g. *Dreamer's Blend* (mugwort + rose + lavender) for vivid, gentle dreams.
+| Potion | Ingredients | Heat | Effect | Grounding |
+|---|---|---|---|---|
+| **Lavender Calm Tonic** | spring water + lavender | steep | calm, restful sleep | Lavender tea is a well-documented calming/sleep infusion. |
+| **Basil Floor Wash** | spring water + basil | simmer | cleanse & protect a space | Real Hoodoo/folk floor wash; basil = protection/cleansing. |
+| **Mugwort Dream Tea** | spring water + mugwort | steep | vivid, prophetic dreams | Mugwort is the classic oneirogen dream tea (steep below boiling). |
+| **Prosperity Tea** | spring water + mint + basil | steep | draws money & luck | Mint + basil are core money-drawing herbs in folk tea/spells. |
+| **Heart's-Ease Rosewater** | spring water + rose | warm gently | love, comfort, soft sight | Real rosewater (petals warmed gently); rose = love/Venus. |
+| **Dandelion Seer's Tea** | moon water + dandelion | simmer | divination & prophetic dreams | Cunningham: dandelion-root tea for divination/prophetic dreams. |
+| **Moonlit Dreaming Draught** | moon water + mugwort + lavender | steep | deep, lucid dreams | Mugwort + lavender is a classic dream-tea blend. |
 
-Potions made here are used by **other classes** (dream-pillows boost Divination/
-Astronomy), sold in the Village, or given as gifts to NPCs.
+**Moon water** (a base that only appears at the Full Moon) gates the two
+psychic/divinatory brews — a real practice (water charged under the full moon).
+
+Potions are sold in the Village, and are the hook for future use by other
+classes (a dream tea before the observatory, etc.) and NPC gifts.
 
 ## Proposed data shape (for implementation)
 
@@ -201,5 +208,11 @@ Secondary corroboration (per-plant), used to cross-check the entries above:
 - Rose — [Curious Cauldron](https://curiouscauldron.com.au/blogs/sacred-space/the-magickal-properties-of-rose) · [Wiccanow](https://wiccanow.com/magickal-properties-of-rose/)
 
 Potion practices:
+- Lavender calm/sleep tea — [Healthline](https://www.healthline.com/nutrition/lavender-tea-benefits) · [Cleveland Clinic — teas for sleep](https://health.clevelandclinic.org/tea-for-sleep)
 - Basil floor wash (cleansing/protection) — [Art of the Root](https://artoftheroot.com/blogs/spells-and-rituals/39475141-basil-in-hoodoo-voodoo-wiccan-pagan-rituals-folklore-and-spells) · [Lucky Mojo — baths & washes](https://www.luckymojo.com/baths.html)
+- Mugwort dream tea (and mugwort + lavender blend) — [Mountain Rose Herbs](https://blog.mountainroseherbs.com/herbs-for-lucid-dreaming-dream-tea-recipe) · [Ascension Kitchen](https://ascensionkitchen.com/mugwort-tea-lucid-dreaming/)
+- Mint + basil money/prosperity tea — [Eclectic Witchcraft — money tea](https://eclecticwitchcraft.com/cinnamon-money-tea/) · [Witchyhour — money herbs](https://witchyhour.com/blogs/herbal-magic/herbs-for-money-spells-attract-wealth-and-prosperity-with-natural-magic)
+- Rosewater (making + love/cleansing magic) — [Sacred Wicca — rose water recipe](https://sacredwicca.com/rose-water-recipe) · [Moonlight Mysteries](https://www.moonlightmysteries.com/blog/unlock-the-magic-rose-water-in-your-craft/)
+- Dandelion-root divination tea — [LearnReligions](https://www.learnreligions.com/dandelion-magic-and-folklore-4588986) · [Greenman Meadows](https://greenmanmeadows.com/dandelion-magic/)
+- Moon water — [The Pagan Grimoire](https://www.pagangrimoire.com/moon-water/)
 

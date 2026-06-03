@@ -183,9 +183,9 @@ const ITEMS = {
     lore: "Rose petals warmed gently — for love, comfort, and a softer sight.",
   },
   wishing_brew: {
-    name: "Wishing Brew", fullName: "Dandelion Wishing Brew", kind: "potion",
+    name: "Seer's Tea", fullName: "Dandelion Seer's Tea", kind: "potion",
     color: [240, 210, 90], sell: 40,
-    lore: "Dandelion in moon water — whisper a wish and let it carry.",
+    lore: "Dandelion root in moon water — for divination and prophetic dreams; leave it steaming by the bed to call spirits.",
   },
   dreaming_draught: {
     name: "Dreaming Draught", fullName: "Moonlit Dreaming Draught", kind: "potion",
@@ -253,16 +253,16 @@ const RECIPES = {
     method: "Warm rose petals gently — never let it boil.",
   },
   wishing_brew: {
-    id: "wishing_brew", name: "Dandelion Wishing Brew", herb: "dandelion", heat: "high",
+    id: "wishing_brew", name: "Dandelion Seer's Tea", herb: "dandelion", heat: "high",
     needs: { moon_water: 1, dandelion: 1 }, makes: "wishing_brew",
-    does: "Wishes & divination. (Full moon.)",
-    method: "Simmer dandelion root hard in moon water; whisper your wish.",
+    does: "Divination & prophetic dreams. (Full moon.)",
+    method: "Simmer dandelion root in moon water; sip, or leave it steaming by the bed.",
   },
   dreaming_draught: {
-    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort", heat: "low",
+    id: "dreaming_draught", name: "Moonlit Dreaming Draught", herb: "mugwort", heat: "med",
     needs: { moon_water: 1, mugwort: 1, lavender: 1 }, makes: "dreaming_draught",
-    does: "Deep, gentle, prophetic dreams. (Full moon.)",
-    method: "Warm mugwort and lavender gently in moon water beneath the full moon.",
+    does: "Deep, lucid, prophetic dreams. (Full moon.)",
+    method: "Steep mugwort and lavender in moon water just below a boil to keep the oils.",
   },
 };
 const RECIPE_ORDER = ["calm_tonic", "basil_wash", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
