@@ -436,18 +436,19 @@ const ROOMS = {
     floor: [56, 44, 70],
     grid: STD_GRID,
     doors: [
-      { gx: 5, gy: 11, to: "courtyard", atGx: 5, atGy: 10, label: "Courtyard v" },
+      { gx: 5, gy: 0, to: "courtyard", atGx: 5, atGy: 10, label: "Courtyard ^" },
     ],
+    // door is at the top, so the furniture sits toward the bottom of the room
     inters: [
-      { gx: 2, gy: 2, kind: "bed",  name: "Bed",     color: [90, 120, 200], action: "sleep" },
-      { gx: 9, gy: 2, kind: "desk", name: "Book of Shadows", color: [150, 130, 90], action: "journal" },
-      { gx: 7, gy: 2, kind: "timetable", name: "Timetable", color: [190, 170, 130], action: "timetable" },
+      { gx: 2, gy: 9, kind: "bed",  name: "Bed",     color: [90, 120, 200], action: "sleep" },
+      { gx: 9, gy: 9, kind: "desk", name: "Book of Shadows", color: [150, 130, 90], action: "journal" },
+      { gx: 7, gy: 9, kind: "timetable", name: "Timetable", color: [190, 170, 130], action: "timetable" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
     decor: [
-      { gx: 9, gy: 9, kind: "bookshelf" },
-      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 9, gy: 2, kind: "bookshelf" },
+      { gx: 1, gy: 10, kind: "lantern", size: 26 },
       { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 40 },
     ],
   },
@@ -458,7 +459,7 @@ const ROOMS = {
     floor: [50, 70, 56],
     grid: STD_GRID,
     doors: [
-      { gx: 5,  gy: 11, to: "dorm",        atGx: 5,  atGy: 10, label: "Dorm v" },
+      { gx: 5,  gy: 11, to: "dorm",        atGx: 5,  atGy: 1,  label: "Dorm v" },
       { gx: 0,  gy: 5,  to: "village",     atGx: 10, atGy: 6,  label: "Village <" },
       { gx: 11, gy: 6,  to: "greenhouse",  atGx: 1,  atGy: 5,  label: "Greenhouse >" },
       { gx: 5,  gy: 0,  to: "academy",     atGx: 5,  atGy: 10, label: "Academy ^" },
@@ -957,7 +958,14 @@ function onArrive() {
   }
   if (pendingDoor) {
     const d = pendingDoor; pendingDoor = null;
+    const src = state.roomId;
     loadRoom(d.to, d.atGx, d.atGy);
+    // face into the new room (away from the door we just came through)
+    const back = ROOMS[d.to].doors.find((b) => b.to === src);
+    if (back) {
+      const dx = d.atGx - back.gx, dy = d.atGy - back.gy;
+      player.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+    }
   }
 }
 
