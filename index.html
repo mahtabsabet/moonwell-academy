@@ -219,7 +219,86 @@ const ITEMS = {
     name: "Moon Water", kind: "base", color: [190, 200, 235],
     lore: "Spring water charged under the full moon — potent for divination.",
   },
+
+  // ---- Crystals & Lithomancy (taught one at a time by Prof. Beryl) ----
+  amethyst: {
+    name: "Amethyst", kind: "stone", color: [150, 110, 205], sell: 18,
+    mineral: "Quartz (purple)", element: "Air", planet: "Jupiter", chakra: "Third Eye & Crown",
+    powers: ["calm", "intuition", "protection", "dreams"],
+    uses: "Keep by the bed for calm sleep & dream recall. Cleanse in moonlight, never in sun.",
+    lore: "Amethyst quiets a racing mind and opens the inner eye.",
+    lesson: [
+      { s: "Prof. Beryl", t: "We begin with Amethyst — purple quartz, a stone of Jupiter and the airy mind." },
+      { s: "Prof. Beryl", t: "It calms a racing head, deepens intuition, and guards sleep — keep it by the bed." },
+      { s: "Prof. Beryl", t: "Cleanse it in moonlight; leave it in the sun and its purple will fade." },
+    ],
+  },
+  clear_quartz: {
+    name: "Clear Quartz", kind: "stone", color: [220, 226, 238], sell: 12,
+    mineral: "Quartz", element: "All", planet: "Sun", chakra: "All (Crown)",
+    powers: ["amplify", "clarity", "healing"],
+    uses: "Set an intention into it to amplify any working; cleanse it often.",
+    lore: "The master crystal — it clears the mind and magnifies whatever you give it.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Clear Quartz — the master crystal, clear as water, working with every chakra." },
+      { s: "Prof. Beryl", t: "It amplifies whatever intention you set into it, and lends clarity and direction." },
+      { s: "Prof. Beryl", t: "Programme it by holding it and naming your purpose; cleanse it often, for it takes on all it touches." },
+    ],
+  },
+  rose_quartz: {
+    name: "Rose Quartz", kind: "stone", color: [236, 165, 185], sell: 16,
+    mineral: "Quartz (pink)", element: "Water", planet: "Venus", chakra: "Heart",
+    powers: ["love", "self-love", "compassion", "healing"],
+    uses: "Carry or keep by the bed for love, self-compassion, and easing grief.",
+    lore: "The heart stone — gentle love, self-compassion, emotional healing.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Rose Quartz — the heart stone, soft pink, ruled by Venus and Water." },
+      { s: "Prof. Beryl", t: "It opens the heart to love — and first of all to self-compassion and healing." },
+      { s: "Prof. Beryl", t: "Carry it, or set it by your bed, to soften grief and invite gentle love." },
+    ],
+  },
+  citrine: {
+    name: "Citrine", kind: "stone", color: [242, 200, 92], sell: 20,
+    mineral: "Quartz (golden)", element: "Fire", planet: "Sun", chakra: "Solar Plexus",
+    powers: ["abundance", "confidence", "joy"],
+    uses: "Carry to draw money & confidence; the merchant's stone.",
+    lore: "Sunlight caught in stone — draws abundance, confidence, and good cheer.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Citrine — sunlight in stone, golden and warm, a stone of the Sun and Fire." },
+      { s: "Prof. Beryl", t: "It draws abundance and confidence and lifts the spirits — the merchant's stone." },
+      { s: "Prof. Beryl", t: "True citrine is rare; much that's sold is heated amethyst. Learn to tell them apart." },
+    ],
+  },
+  black_tourmaline: {
+    name: "Black Tourmaline", kind: "stone", color: [62, 58, 74], sell: 15,
+    mineral: "Schorl (tourmaline)", element: "Earth", planet: "Saturn", chakra: "Root",
+    powers: ["protection", "grounding", "banishing"],
+    uses: "Keep by the door or carry it; it absorbs negativity. Cleanse often.",
+    lore: "A shield in stone — grounds you and turns away negativity.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Black Tourmaline — a dark, grounding stone of Saturn and Earth; your shield." },
+      { s: "Prof. Beryl", t: "It absorbs and turns away negativity, and roots you when the world feels unsteady." },
+      { s: "Prof. Beryl", t: "Keep it at the door or carry it — but cleanse it often, for it holds what it takes in." },
+    ],
+  },
+  moonstone: {
+    name: "Moonstone", kind: "stone", color: [202, 212, 236], sell: 22,
+    mineral: "Feldspar", element: "Water", planet: "Moon", chakra: "Crown & Third Eye",
+    powers: ["intuition", "new beginnings", "balance"],
+    uses: "Charge under the full moon; for intuition and steadiness through change.",
+    lore: "Moonlight made solid — for intuition, new beginnings, and the tides of feeling.",
+    lesson: [
+      { s: "Prof. Beryl", t: "Moonstone — pale and shimmering, ruled by the Moon and the tides of Water." },
+      { s: "Prof. Beryl", t: "It heightens intuition, eases new beginnings, and steadies the emotions through change." },
+      { s: "Prof. Beryl", t: "Charge it under the full moon, to which it is kin." },
+    ],
+  },
 };
+
+// Order Prof. Beryl teaches the stones; each Crystals lesson adds a Book of
+// Shadows page and a sample stone to your bag.
+const CRYSTAL_ORDER = ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"];
+const STONE_SELL = 12;  // fallback stone price if an item lacks its own
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -810,6 +889,7 @@ function freshState() {
     knownRecipes: {},     // recipe id -> true
     skills: {},           // subject id -> level (raised by attending class)
     herbsKnown: {},       // herb id -> true (studied in Herbology)
+    crystalsKnown: {},    // crystal id -> true (studied in Crystals)
     pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
     seeds: {},            // herb id -> count (kept out of the satchel HUD)
     planters: {},         // planter slot -> { herbId, plantedDay } | undefined
@@ -1056,6 +1136,7 @@ function actClass(id) {
   }
   state.attendedToday[id] = true;
   if (id === "herbology") return teachHerb();
+  if (id === "crystals")  return teachCrystal();
   if (id === "potions")   { teachRecipe(); }   // Potions also grants a recipe
   const first = !state.skills[id];
   state.skills[id] = (state.skills[id] || 0) + 1;
@@ -1106,6 +1187,21 @@ function teachHerb() {
   state.pots[next] = { stock: POT_FULL, readyDay: state.dayCount };  // a fresh pot appears
   syncGreenhousePots();
   state.todayLog.push("Learned " + ITEMS[next].name);
+  startDialogue(ITEMS[next].lesson);
+}
+
+// Crystals: study the next stone, add its Book of Shadows page + a sample stone.
+function teachCrystal() {
+  const next = CRYSTAL_ORDER.find((c) => !state.crystalsKnown[c]);
+  if (!next) {
+    startDialogue([{ s: "Prof. Beryl", t: "You've studied all this term's stones — revisit them in your Book of Shadows." }]);
+    return;
+  }
+  state.crystalsKnown[next] = true;
+  state.skills.crystals = Object.keys(state.crystalsKnown).length;
+  state.journal.crystals = "Studying the stones — " + state.skills.crystals + " of " + CRYSTAL_ORDER.length + " learned.";
+  state.inv[next] = (state.inv[next] || 0) + 1;   // a sample stone for your bag
+  state.todayLog.push("Studied " + ITEMS[next].name + " (+1 stone)");
   startDialogue(ITEMS[next].lesson);
 }
 
@@ -1206,7 +1302,7 @@ function buySeed(id) {
 }
 function sellItem(id) {
   if ((state.inv[id] || 0) <= 0) return;
-  const price = ITEMS[id].kind === "potion" ? ITEMS[id].sell : HERB_SELL;
+  const price = ITEMS[id].sell != null ? ITEMS[id].sell : HERB_SELL;
   state.inv[id] -= 1;
   state.coin += price;
   state.todayLog.push("Sold a " + ITEMS[id].name + " (+" + price + ")");
@@ -1764,9 +1860,9 @@ function shopRows() {
   if (!anyBuy) push({ type: "note", label: "(study herbs to unlock their seeds)" });
   y += 6;
   push({ type: "hdr", label: "Sell" });
-  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && (ITEMS[id].kind === "potion" || ITEMS[id].kind === "herb"));
+  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && ["potion", "herb", "stone"].includes(ITEMS[id].kind));
   if (!sellable.length) push({ type: "note", label: "(nothing to sell)" });
-  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: ITEMS[id].kind === "potion" ? ITEMS[id].sell : HERB_SELL });
+  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: ITEMS[id].sell != null ? ITEMS[id].sell : HERB_SELL });
   y += 8;
   push({ type: "close", label: "Close" });
   return rows;
@@ -1839,7 +1935,8 @@ function handlePlantTap(m) {
 // The Book of Shadows is paged: page 0 is the studies overview, then one
 // illustrated page per studied herb (in HERB_ORDER). Prev/Next/Close buttons.
 function bosHerbPages() { return HERB_ORDER.filter((h) => state.herbsKnown[h]); }
-function bosTotalPages() { return 1 + bosHerbPages().length; }
+function bosCrystalPages() { return CRYSTAL_ORDER.filter((c) => state.crystalsKnown[c]); }
+function bosTotalPages() { return 1 + bosHerbPages().length + bosCrystalPages().length; }
 function bosButtons() {
   const y = CANVAS_H - 90, h = 26;
   return [
@@ -1871,10 +1968,11 @@ function drawJournal() {                       // (the Book of Shadows)
   const px = bx + 12, py = by + 12, pw = bw - 24, ph = bh - 24;
   drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
 
-  const herbs = bosHerbPages();
+  const herbs = bosHerbPages(), crystals = bosCrystalPages();
   if (bosPage > bosTotalPages() - 1) bosPage = bosTotalPages() - 1;
   if (bosPage === 0) drawBosOverview(px, py, pw, ph);
-  else               drawHerbPage(herbs[bosPage - 1], px, py, pw, ph);
+  else if (bosPage - 1 < herbs.length) drawHerbPage(herbs[bosPage - 1], px, py, pw, ph);
+  else drawCrystalPage(crystals[bosPage - 1 - herbs.length], px, py, pw, ph);
 
   // page buttons
   for (const b of bosButtons()) {
@@ -1907,7 +2005,10 @@ function drawBosOverview(px, py, pw, ph) {
   const studied = bosHerbPages().length;
   drawText({ text: "Herbal:  " + studied + " of " + HERB_ORDER.length + " plants studied.", pos: vec2(x, y),
              size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
-  drawText({ text: studied ? "Turn the page for your plant entries." : "Attend Herbology to fill these pages.",
+  const stones = bosCrystalPages().length;
+  drawText({ text: "Stones:  " + stones + " of " + CRYSTAL_ORDER.length + " studied.", pos: vec2(x, y),
+             size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
+  drawText({ text: (studied || stones) ? "Turn the page for your plant & stone entries." : "Attend class to fill these pages.",
              pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
 
   // autosave note + reset button
@@ -1942,6 +2043,27 @@ function drawHerbPage(id, px, py, pw, ph) {
   if (HERB_MOON[id]) { drawText({ text: "Gather:  " + HERB_MOON[id] + " moon", pos: vec2(x, y), size: 13, font: hf(), color: HDR }); y += 20; }
   if (h.safety) { drawText({ text: "Caution:  " + h.safety, pos: vec2(x, y), size: 12, font: hf(), color: rgb(150, 70, 60), width: pw - 28, lineSpacing: 2 }); y += 34; }
   drawText({ text: '"' + h.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
+}
+
+function drawCrystalPage(id, px, py, pw, ph) {
+  const c = ITEMS[id];
+  const x = px + 16, INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110);
+  let y = py + 16;
+  drawText({ text: c.name, pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: HDR, anchor: "center" }); y += 24;
+  drawText({ text: c.mineral, pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 20;
+  // framed gemstone (colour chip — no sprite yet)
+  const iy = y + 30;
+  drawRect({ pos: vec2(px + pw / 2, iy), width: 66, height: 66, anchor: "center", color: rgb(228, 214, 180),
+             radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
+  if (ready("item_" + id)) drawSprite({ sprite: "item_" + id, pos: vec2(px + pw / 2, iy), width: 56, height: 56, anchor: "center" });
+  else drawRect({ pos: vec2(px + pw / 2, iy), width: 40, height: 40, anchor: "center", color: col(c.color), radius: 6,
+                  outline: { color: rgb(255, 255, 255), width: 1 } });
+  y = iy + 44;
+  drawText({ text: c.element + "  ·  " + c.planet, pos: vec2(px + pw / 2, y), size: 13, font: hf(), color: HDR, anchor: "center" }); y += 18;
+  drawText({ text: "Chakra:  " + c.chakra, pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 22;
+  drawText({ text: "Powers:  " + c.powers.join(", "), pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 30;
+  drawText({ text: "Use:  " + c.uses, pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 44;
+  drawText({ text: '"' + c.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
 }
 
 /* ============================================================================
