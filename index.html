@@ -167,6 +167,11 @@ const ITEMS = {
     color: [150, 150, 118], sell: 30,
     lore: "Steeped just below a boil — it opens the gate to vivid, prophetic dreams.",
   },
+  basil_wash: {
+    name: "Protection Wash", fullName: "Basil Protection Wash", kind: "potion",
+    color: [110, 170, 95], sell: 22,
+    lore: "Steeped basil for cleansing and protection — sprinkle at thresholds.",
+  },
   prosperity_tea: {
     name: "Prosperity Tea", fullName: "Prosperity Tea", kind: "potion",
     color: [150, 200, 120], sell: 35,
@@ -229,6 +234,12 @@ const RECIPES = {
     does: "Vivid, prophetic dreams.",
     method: "Warm spring water just below a boil, steep mugwort, sip before bed.",
   },
+  basil_wash: {
+    id: "basil_wash", name: "Basil Protection Wash", herb: "basil", heat: "med",
+    needs: { spring_water: 1, basil: 1 }, makes: "basil_wash",
+    does: "Wards a space; protection & cleansing.",
+    method: "Steep basil in spring water; sprinkle at doors and windows.",
+  },
   prosperity_tea: {
     id: "prosperity_tea", name: "Prosperity Tea", herb: "mint", heat: "med",
     needs: { spring_water: 1, mint: 1, basil: 1 }, makes: "prosperity_tea",
@@ -254,7 +265,7 @@ const RECIPES = {
     method: "Warm mugwort and lavender gently in moon water beneath the full moon.",
   },
 };
-const RECIPE_ORDER = ["calm_tonic", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
+const RECIPE_ORDER = ["calm_tonic", "basil_wash", "dream_tea", "prosperity_tea", "rosewater", "wishing_brew", "dreaming_draught"];
 const HEATS = ["low", "med", "high"];
 const heatWord = (h) => ({ low: "warm gently", med: "steep", high: "simmer hard" }[h] || h);
 
