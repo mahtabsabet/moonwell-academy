@@ -1424,8 +1424,10 @@ onDraw(() => {
         else if (age >= GROW_DAYS / 2 && ready("seedling2")) { spr = "seedling2"; sz = 30; }
         else if (ready("seedling")) { spr = "seedling"; sz = 24; }
         else { spr = herbSprite(pl.herbId); sz = 18 + Math.min(age, GROW_DAYS) * 5; }
+        // sit the plant in the soil (the planter box is taller than the tile),
+        // not on its front rim
         if (ready(spr)) drawSprite({ sprite: spr, anchor: "bot",
-          pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: sz, height: sz, opacity: ripe ? 1 : 0.95 });
+          pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE - 18), width: sz, height: sz, opacity: ripe ? 1 : 0.95 });
         label = ripe ? ITEMS[pl.herbId].name + " ready!" : ITEMS[pl.herbId].name + " (" + (GROW_DAYS - age) + "d)";
       }
       if (actionable) drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
