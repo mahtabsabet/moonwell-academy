@@ -71,7 +71,9 @@ Book of Shadows page: **correspondences**, **herbal use**, **safety**, **lore**.
 - **Safety:** Culinary-safe; medicinal amounts best avoided in pregnancy.
 - **Lore (BoS):** *"Basil guards the door and fills the purse. Keep a leaf where
   money passes, and a sprig where you wish to be safe."*
-- **Potion:** *Hearthguard Oil* (protection) or *Merchant's Draught* (prosperity).
+- **Potion:** *Basil Floor Wash* — simmered basil to cleanse & protect a space,
+  washed from the back of the home to the front. A real, documented Hoodoo/folk
+  practice (basil is a classic protection & cleansing herb in floor washes).
 
 ### 3. Mint — *Mentha spp.*
 - **Correspondences:** Masculine · Mercury · Air (peppermint leans Fire; spearmint
@@ -197,4 +199,7 @@ Secondary corroboration (per-plant), used to cross-check the entries above:
 - Mugwort — [Grove and Grotto](https://www.groveandgrotto.com/blogs/articles/magickal-properties-of-mugwort) · [Alchemy Works](https://www.alchemy-works.com/herb_mugwort.html)
 - Dandelion — [Wiccanow](https://wiccanow.com/magickal-properties-of-dandelion/) · [Crystal Vaults](https://www.crystalvaults.com/magical-herbs/dandelion/)
 - Rose — [Curious Cauldron](https://curiouscauldron.com.au/blogs/sacred-space/the-magickal-properties-of-rose) · [Wiccanow](https://wiccanow.com/magickal-properties-of-rose/)
+
+Potion practices:
+- Basil floor wash (cleansing/protection) — [Art of the Root](https://artoftheroot.com/blogs/spells-and-rituals/39475141-basil-in-hoodoo-voodoo-wiccan-pagan-rituals-folklore-and-spells) · [Lucky Mojo — baths & washes](https://www.luckymojo.com/baths.html)
 
