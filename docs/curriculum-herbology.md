@@ -161,11 +161,11 @@ one dream item, no overlap.
 | Craft | Form | Ingredients | Heat | Effect | Grounding |
 |---|---|---|---|---|---|
 | **Lavender Calm Tonic** | tea | spring water + lavender | steep | calm, restful **sleep** | Lavender tea is a documented calming/sleep infusion. |
-| **Prosperity Oil** | oil | spring water + basil | warm gently | money & luck (anoint) | Basil is a classic money/"draw custom" herb; anointing oils are standard. |
+| **Prosperity Oil** | oil | oil + basil | warm gently | money & luck (anoint) | Basil is a classic money/"draw custom" herb; anointing oils are standard. |
 | **Mint Cleansing Wash** | wash | spring water + mint | simmer | purify a space/tool/self | Mint is a traditional purification/cleansing herb. |
 | **Mugwort Dream Tea** | tea | spring water + mugwort | steep | vivid, prophetic **dreams** | The classic oneirogen dream tea (steep below boiling). |
 | **Dandelion Seer's Tea** | tea | moon water + dandelion | simmer | **divination** & clear sight | Cunningham: dandelion-root tea for divination. |
-| **Rose Love Oil** | oil | spring water + rose | warm gently | love & comfort (anoint/gift) | Rose = love/Venus; rose-infused anointing oils are traditional. |
+| **Rose Love Oil** | oil | oil + rose | warm gently | love & comfort (anoint/gift) | Rose = love/Venus; rose-infused anointing oils are traditional. |
 | **Witch's Bottle** | carried charm | salt + rosemary | seal/char | **protection** (+defense) | Real protective charm: salt + rosemary (often + iron pins) sealed in a bottle, carried or buried. |
 
 *Rosemary is now a core (7th) plant. Protection moved off basil (basil = prosperity)

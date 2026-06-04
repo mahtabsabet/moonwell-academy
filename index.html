@@ -175,6 +175,10 @@ const ITEMS = {
     name: "Salt", kind: "base", color: [232, 232, 238],
     lore: "The oldest protection — salt wards, cleanses, and seals.",
   },
+  oil: {
+    name: "Oil", kind: "base", color: [225, 195, 110],
+    lore: "A gentle carrier oil — the base for anointing oils.",
+  },
   lavender_calm_tonic: {
     name: "Calm Tonic", fullName: "Lavender Calm Tonic", kind: "potion",
     color: [185, 145, 255], sell: 25,
@@ -338,7 +342,7 @@ const RECIPES = {
   },
   prosperity_oil: {
     id: "prosperity_oil", name: "Prosperity Oil", herb: "basil", heat: "low",
-    needs: { spring_water: 1, basil: 1 }, makes: "prosperity_oil",
+    needs: { oil: 1, basil: 1 }, makes: "prosperity_oil",
     does: "Draws money & luck. Anoint coins, candles, or the door.",
     method: "Warm basil gently into oil; never let it boil.",
   },
@@ -350,7 +354,7 @@ const RECIPES = {
   },
   rose_love_oil: {
     id: "rose_love_oil", name: "Rose Love Oil", herb: "rose", heat: "low",
-    needs: { spring_water: 1, rose: 1 }, makes: "rose_love_oil",
+    needs: { oil: 1, rose: 1 }, makes: "rose_love_oil",
     does: "Love, comfort. Anoint yourself, or gift it.",
     method: "Warm rose petals gently into oil — never let it boil.",
   },
@@ -1365,7 +1369,7 @@ function sameCounts(a, b) {
 
 // Ingredients you can drop into the pot right now.
 function pantry() {
-  const list = [{ id: "spring_water", n: Infinity }, { id: "salt", n: Infinity }]; // always at the cauldron
+  const list = [{ id: "spring_water", n: Infinity }, { id: "oil", n: Infinity }, { id: "salt", n: Infinity }]; // always at the cauldron
   if (moonPhase().name === "Full Moon") list.push({ id: "moon_water", n: Infinity }); // only at the full moon
   for (const id in state.inv) {
     if (ITEMS[id].kind === "herb" && state.inv[id] > 0) list.push({ id, n: state.inv[id] });
@@ -2087,7 +2091,7 @@ function brewButtons() {
     const col = i % 2, rowi = Math.floor(i / 2);
     btns.push({
       kind: "add", id: it.id,
-      x: 18 + col * 178, y: 250 + rowi * 40, w: 168, h: 32,
+      x: 18 + col * 178, y: 248 + rowi * 36, w: 168, h: 30,
       label: ITEMS[it.id].name + (it.n === Infinity ? "" : "  x" + it.n),
       color: ITEMS[it.id].color,
     });
@@ -2099,7 +2103,7 @@ function brewButtons() {
     { kind: "empty",    label: "Empty",    color: [180, 120, 120] },
     { kind: "leave",    label: "Leave",    color: [120, 120, 140] },
   ];
-  acts.forEach((a, i) => btns.push({ ...a, x: 14 + i * 90, y: 452, w: 84, h: 38 }));
+  acts.forEach((a, i) => btns.push({ ...a, x: 14 + i * 90, y: 462, w: 84, h: 38 }));
   return btns;
 }
 
