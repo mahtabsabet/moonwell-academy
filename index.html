@@ -55,7 +55,7 @@ const PLAYER_H    = 52;     // on-screen player HEIGHT in px (~1.6 tiles tall)
 const PLAYER_AR   = 0.565;  // sprite aspect (width / height) after cropping
 const PROP_DRAW   = 42;     // on-screen prop size in px (drawn near native, crisp)
 const CHAR_KINDS  = new Set(["teacher", "shop", "friend",       // drawn as tall characters
-  "t_potions", "t_astronomy", "t_divination", "t_crystals", "t_spellcraft", "t_kitchen"]);
+  "t_potions", "t_astronomy", "t_divination", "t_crystals", "t_spellcraft", "t_kitchen", "t_creatures"]);
 
 /* ---------- Items (herbs, brewing bases + potions) ----------
    kind: "herb" | "base" | "potion". sell: coin value. color: [r,g,b].
@@ -347,28 +347,69 @@ const ORE_TABLE = [   // [crystal id, base weight]
    Ward to settle it (then keep mining), or Back away (safe, but no ore). Each
    creature has a preferred response; the right one also leaves a small gift.
    `drop:"stone"` means the calmed creature shows you a bit of ore. */
+// Defensive responses. `needs` approaches only appear when you carry the item
+// (and consume one). No "attack" exists.
 const APPROACHES = [
-  { id: "soothe",  label: "Soothe — hum a calming tune" },
+  { id: "soothe",  label: "Soothe — a calm, low hum" },
   { id: "frost",   label: "Frost — chill the air to slow them" },
   { id: "ward",    label: "Ward — raise a protective shield" },
+  { id: "offer",   label: "Offer food (give a fruit)", needs: "fruit" },
+  { id: "light",   label: "Light a candle", needs: "candle" },
   { id: "retreat", label: "Back away (no ore)" },
 ];
+// Bestiary, taught one at a time in Magical Creatures class. `calmWith` is the
+// response that settles it (and leaves a gift); studying reveals it in encounters.
 const CREATURES = {
   cave_spider: { name: "Cave Spider", tier: "mundane", color: [120, 105, 90], calmWith: "ward", drop: "spider_silk",
     appear: "A cave spider drops down on a silken thread!",
-    best: "You raise a shield; it loses interest and leaves a strand of silk.",
-    ok:   "You shoo it off; it scuttles back into the dark." },
+    best: "You raise a shield; it loses interest and leaves a strand of silk.", ok: "You shoo it back into the dark.",
+    lore: "A big but timid cave spider. Stand firm behind a ward and it yields silk.",
+    lesson: [{ s: "Keeper Fenn", t: "Cave spiders are shy despite their size — ward yourself and they leave you (and a little silk) be." }] },
   rat: { name: "Cave Rat", tier: "mundane", color: [130, 120, 108], calmWith: "soothe", drop: "stone",
     appear: "A rat skitters out, whiskers twitching.",
-    best: "You hum softly; it calms and leads you to a glint of ore.",
-    ok:   "It startles and darts away." },
+    best: "You hum softly; it calms and leads you to a glint of ore.", ok: "It startles and darts away.",
+    lore: "Nervous, not malicious. A calm hum settles it — and it'll show you ore.",
+    lesson: [{ s: "Keeper Fenn", t: "Cave rats are nervy, not nasty. A low, calm hum and they'll trust you to a glint of ore." }] },
   wasps: { name: "Wasp Swarm", tier: "mundane", color: [214, 192, 74], calmWith: "frost", drop: "beeswax",
     appear: "A wasp swarm lifts off, buzzing crossly!",
-    best: "You chill the air; they slow, settle, and leave a comb of wax.",
-    ok:   "You wave them off and they drift away." },
+    best: "You chill the air; they slow, settle, and leave a comb of wax.", ok: "You wave them off and they drift away.",
+    lore: "All heat and motion. Chill the air and they slow and settle.",
+    lesson: [{ s: "Keeper Fenn", t: "A wasp swarm is all heat and motion — chill the air and they slow right down." }] },
+  knocker: { name: "Knocker", tier: "spirit", color: [150, 130, 110], calmWith: "offer", drop: "stone",
+    appear: "A knocking echoes — a wrinkled little mine-spirit peers out!",
+    best: "You leave it a bite of food; it knocks you toward a rich seam.", ok: "It grumbles and raps the walls.",
+    lore: "A Cornish mine-spirit. It knocks to warn of cave-ins and leads the worthy to ore — leave it food, and never whistle.",
+    lesson: [
+      { s: "Keeper Fenn", t: "Knockers are Cornish mine-spirits — they knock to warn of collapse and lead good folk to rich veins." },
+      { s: "Keeper Fenn", t: "Leave them the last bite of your food, as the old miners did, and never whistle or curse near them." }] },
+  will_o_wisp: { name: "Will-o'-the-Wisp", tier: "spirit", color: [150, 220, 180], calmWith: "ward",
+    appear: "A pale light bobs in the dark, beckoning you deeper...",
+    best: "You steady your mind behind a ward and refuse to follow; it fades.", ok: "You blink and it drifts off.",
+    lore: "A deceiving light that leads travellers astray. Don't follow — steady yourself behind a ward.",
+    lesson: [{ s: "Keeper Fenn", t: "A will-o'-the-wisp is a false light that leads folk astray. Never follow it — ward your mind and stand your ground." }] },
+  kobold: { name: "Kobold", tier: "spirit", color: [120, 140, 120], calmWith: "soothe", drop: "stone",
+    appear: "A goblin-like kobold bristles by the ore!",
+    best: "You speak kindly and low; pleased, it gives up a fine stone.", ok: "It scowls and sulks off.",
+    lore: "A German mine-spirit — treat it kindly and it helps; slight it and it sours the ore (cobalt is named for it).",
+    lesson: [{ s: "Keeper Fenn", t: "Kobolds are German mine-spirits. Treat them kindly and they help; slight them and they poison the ore — cobalt is named for them." }] },
+  cave_sprite: { name: "Cave Sprite", tier: "spirit", color: [180, 160, 220], calmWith: "soothe",
+    appear: "A flighty cave sprite darts about, scattering dust!",
+    best: "A gentle, calm manner wins it over and it settles.", ok: "It giggles and zips away.",
+    lore: "Mischievous, flighty fae. A gentle, calm manner wins them over.",
+    lesson: [{ s: "Keeper Fenn", t: "Cave sprites are mischievous fae — easily startled. A gentle, calm manner and they'll settle." }] },
+  shadow_moths: { name: "Shadow-Moths", tier: "spirit", color: [90, 84, 110], calmWith: "light",
+    appear: "A cloud of shadow-moths boils up from the dark!",
+    best: "You strike a candle; they drift to the flame and your path clears.", ok: "You push through the flutter.",
+    lore: "Gather in the dark, scatter toward light. Strike a candle and they leave your path.",
+    lesson: [{ s: "Keeper Fenn", t: "Shadow-moths swarm in the dark and flee toward light — strike a candle and they'll drift away to the flame." }] },
 };
-const MINE_CREATURES = ["cave_spider", "rat", "wasps"]; // who roams the surface mine
-const ENCOUNTER_CHANCE = 0.35;
+const CREATURE_ORDER = ["cave_spider", "rat", "wasps", "knocker", "will_o_wisp", "kobold", "cave_sprite", "shadow_moths"];
+const CREATURES_BY_DEPTH = {
+  1: ["cave_spider", "rat", "wasps"],
+  2: ["knocker", "will_o_wisp", "rat"],
+  3: ["kobold", "cave_sprite", "shadow_moths", "will_o_wisp"],
+};
+const ENCOUNTER_CHANCE = 0.35;  // +0.1 per level deeper
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -540,6 +581,11 @@ const SUBJECTS = {
       { s: "Miss Marjoram", t: "Folklore keeps the old protections — salt on the threshold, iron at the door." },
     ],
   },
+  creatures: {
+    name: "Magical Creatures", teacher: "Keeper Fenn",
+    takeaway: "Mine-dwellers, mundane and magical — soothe, ward, or offer; never fight.",
+    // taught one creature per visit (progressive), like Herbology/Crystals
+  },
 };
 
 /* ---------- Calendar & timetable ----------
@@ -549,7 +595,7 @@ const SUBJECTS = {
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const TIMETABLE = {
   Monday:    ["herbology", "potions"],
-  Tuesday:   ["astronomy"],
+  Tuesday:   ["astronomy", "creatures"],
   Wednesday: ["divination", "crystals"],
   Thursday:  ["herbology", "spellcraft"],
   Friday:    ["potions", "kitchen"],
@@ -671,6 +717,7 @@ const ROOMS = {
       { gx: 8,  gy: 0,  to: "crystals",   atGx: 5, atGy: 10, label: "Crystals ^" },
       { gx: 0,  gy: 5,  to: "spellcraft", atGx: 5, atGy: 10, label: "Spellcraft <" },
       { gx: 11, gy: 5,  to: "kitchen",    atGx: 5, atGy: 10, label: "Kitchen >" },
+      { gx: 11, gy: 8,  to: "creatures",  atGx: 5, atGy: 10, label: "Creatures >" },
     ],
     inters: [],
     decor: [
@@ -678,7 +725,19 @@ const ROOMS = {
       { gx: 9, gy: 2, kind: "bookshelf" },
       { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 44 },
       { gx: 1, gy: 9, kind: "lantern", size: 26 },
-      { gx: 10, gy: 9, kind: "lantern", size: 26 },
+    ],
+  },
+  creatures: {
+    name: "Magical Creatures",
+    floor: [54, 60, 54],
+    grid: STD_GRID,
+    doors: [ { gx: 5, gy: 11, to: "academy", atGx: 10, atGy: 8, label: "Hall v" } ],
+    inters: [ { gx: 6, gy: 2, kind: "t_creatures", name: "Keeper Fenn", color: [140, 180, 130], action: "class", subject: "creatures" } ],
+    decor: [
+      { gx: 2, gy: 2, kind: "barrel" },
+      { gx: 9, gy: 2, kind: "crystal_ball", size: 28 },
+      { gx: 2, gy: 8, kind: "pots" },
+      { gx: 9, gy: 8, kind: "lantern", size: 26 },
     ],
   },
 
@@ -928,16 +987,44 @@ const ROOMS = {
   // ---- The Mines: work ore with a pickaxe to find stones ----
   mine: {
     name: "The Mines",
-    floor: [40, 38, 48],
+    floor: [40, 38, 48], depth: 1,
     grid: STD_GRID,
-    doors: [ { gx: 11, gy: 6, to: "village", atGx: 1, atGy: 6, label: "Village >" } ],
-    inters: MINE_NODES.map((s, i) => ({
-      gx: s[0], gy: s[1], kind: "ore", name: "Ore", color: [122, 112, 124], action: "mine", nodeSlot: i,
-    })),
+    doors: [
+      { gx: 11, gy: 6, to: "village", atGx: 1, atGy: 6,  label: "Village >" },
+      { gx: 5,  gy: 11, to: "mine2",  atGx: 5, atGy: 1,  label: "Descend v" },
+    ],
+    inters: MINE_NODES.map((s, i) => ({ gx: s[0], gy: s[1], kind: "ore", name: "Ore", color: [122, 112, 124], action: "mine", nodeSlot: i })),
     decor: [
       { gx: 1, gy: 1, kind: "lantern", size: 26 },
       { gx: 1, gy: 10, kind: "lantern", size: 26 },
       { gx: 10, gy: 10, kind: "barrel" },
+    ],
+  },
+  mine2: {
+    name: "The Mines — Deep",
+    floor: [34, 32, 44], depth: 2,
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 0,  to: "mine",  atGx: 5, atGy: 10, label: "Ascend ^" },
+      { gx: 5, gy: 11, to: "mine3", atGx: 5, atGy: 1,  label: "Descend v" },
+    ],
+    inters: MINE_NODES.map((s, i) => ({ gx: s[0], gy: s[1], kind: "ore", name: "Ore", color: [120, 108, 126], action: "mine", nodeSlot: i })),
+    decor: [
+      { gx: 1, gy: 10, kind: "lantern", size: 26 },
+      { gx: 10, gy: 1, kind: "lantern", size: 26 },
+    ],
+  },
+  mine3: {
+    name: "The Mines — Deepest",
+    floor: [28, 26, 40], depth: 3,
+    grid: STD_GRID,
+    doors: [
+      { gx: 5, gy: 0, to: "mine2", atGx: 5, atGy: 10, label: "Ascend ^" },
+    ],
+    inters: MINE_NODES.map((s, i) => ({ gx: s[0], gy: s[1], kind: "ore", name: "Ore", color: [118, 104, 128], action: "mine", nodeSlot: i })),
+    decor: [
+      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 10, gy: 10, kind: "lantern", size: 26 },
     ],
   },
 };
@@ -1054,6 +1141,7 @@ function freshState() {
     skills: {},           // subject id -> level (raised by attending class)
     herbsKnown: {},       // herb id -> true (studied in Herbology)
     crystalsKnown: {},    // crystal id -> true (studied in Crystals)
+    creaturesKnown: {},   // creature id -> true (studied in Magical Creatures)
     pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
     oreNodes: {},         // mine node slot -> { ore, readyDay }
     seeds: {},            // herb id -> count (kept out of the satchel HUD)
@@ -1304,6 +1392,7 @@ function actClass(id) {
   state.attendedToday[id] = true;
   if (id === "herbology") return teachHerb();
   if (id === "crystals")  return teachCrystal();
+  if (id === "creatures") return teachCreature();
   if (id === "potions")   { teachRecipe(); }   // Potions also grants a recipe
   const first = !state.skills[id];
   state.skills[id] = (state.skills[id] || 0) + 1;
@@ -1372,6 +1461,21 @@ function teachCrystal() {
   startDialogue(ITEMS[next].lesson);
 }
 
+// Magical Creatures: study the next creature, adding a Book of Shadows bestiary
+// entry and revealing how to settle it in the mines.
+function teachCreature() {
+  const next = CREATURE_ORDER.find((c) => !state.creaturesKnown[c]);
+  if (!next) {
+    startDialogue([{ s: "Keeper Fenn", t: "You've met every beast on the syllabus — revisit them in your Book of Shadows." }]);
+    return;
+  }
+  state.creaturesKnown[next] = true;
+  state.skills.creatures = Object.keys(state.creaturesKnown).length;
+  state.journal.creatures = "Studying the bestiary — " + state.skills.creatures + " of " + CREATURE_ORDER.length + " known.";
+  state.todayLog.push("Studied the " + CREATURES[next].name);
+  startDialogue(CREATURES[next].lesson);
+}
+
 /* ---------- Greenhouse pots ---------- */
 // Rebuild the greenhouse interactables: Prof. Sage + one pot per studied herb.
 function syncGreenhousePots() {
@@ -1396,14 +1500,16 @@ function isIdealMoon(id) {
 }
 
 /* ---------- Mining ---------- */
-function refreshNode(slot) {
-  const n = state.oreNodes[slot];
+const mineDepth = () => (ROOMS[state.roomId] && ROOMS[state.roomId].depth) || 1;
+const nodeKey = (o) => state.roomId + "#" + o.nodeSlot;   // ore state is per room + slot
+function refreshNode(key) {
+  const n = state.oreNodes[key];
   if (n && n.ore <= 0 && state.dayCount >= n.readyDay) n.ore = ORE_PER;
 }
-// Weighted random stone; the higher your Mining skill the better the rare odds.
-function mineDrop() {
-  const lvl = state.skills.mining || 0;
-  const weighted = ORE_TABLE.map(([id, w], i) => [id, i < 3 ? w : w + lvl * 0.6]); // rarer stones (idx>=3) improve with skill
+// Weighted random stone; deeper levels and higher Mining skill favour rarer stones.
+function mineDrop(depth) {
+  const lvl = state.skills.mining || 0, d = depth || 1;
+  const weighted = ORE_TABLE.map(([id, w], i) => [id, i < 3 ? w : w + (d - 1) * 8 + lvl * 0.6]);
   const total = weighted.reduce((s, [, w]) => s + w, 0);
   let r = Math.random() * total;
   for (const [id, w] of weighted) { if ((r -= w) <= 0) return id; }
@@ -1414,45 +1520,52 @@ function actMine(o) {
     toast("You need a pickaxe — buy one at Magical Tools.");
     return;
   }
-  const slot = o.nodeSlot;
-  if (!state.oreNodes[slot]) state.oreNodes[slot] = { ore: ORE_PER, readyDay: state.dayCount };
-  refreshNode(slot);
-  const n = state.oreNodes[slot];
+  const key = nodeKey(o);
+  if (!state.oreNodes[key]) state.oreNodes[key] = { ore: ORE_PER, readyDay: state.dayCount };
+  refreshNode(key);
+  const n = state.oreNodes[key];
   if (n.ore <= 0) { toast("This seam is spent — back in " + Math.max(0, n.readyDay - state.dayCount) + "d."); return; }
-  // a creature may interrupt; resolve it before the ore is won
-  if (Math.random() < ENCOUNTER_CHANCE) {
-    encounter = { slot, creature: MINE_CREATURES[Math.floor(Math.random() * MINE_CREATURES.length)] };
+  const depth = mineDepth();
+  // a creature may interrupt; resolve it before the ore is won (likelier deeper)
+  if (Math.random() < ENCOUNTER_CHANCE + (depth - 1) * 0.1) {
+    const pool = CREATURES_BY_DEPTH[depth] || CREATURES_BY_DEPTH[1];
+    encounter = { key, depth, creature: pool[Math.floor(Math.random() * pool.length)] };
     return;
   }
-  doMineYield(slot);
+  doMineYield(key, depth);
 }
 // Win the ore from a node: consume an ore, give a stone, raise Mining.
-function doMineYield(slot) {
-  const n = state.oreNodes[slot];
+function doMineYield(key, depth) {
+  const n = state.oreNodes[key];
   if (!n || n.ore <= 0) return;
   n.ore -= 1;
   if (n.ore <= 0) n.readyDay = state.dayCount + ORE_REGROW;
-  const id = mineDrop();
+  const id = mineDrop(depth);
   state.inv[id] = (state.inv[id] || 0) + 1;
   state.skills.mining = (state.skills.mining || 0) + 1;
   state.todayLog.push("Mined " + ITEMS[id].name);
   toast("Struck " + ITEMS[id].name + "!");
   save();
 }
-// Resolve a creature encounter with a chosen defensive approach.
+// First held item of a given kind (for the offer/light approaches).
+function firstOfKind(kind) { return Object.keys(state.inv).find((id) => state.inv[id] > 0 && ITEMS[id] && ITEMS[id].kind === kind); }
+// Resolve a creature encounter with a chosen defensive approach. Never harmful.
 function resolveEncounter(approachId) {
   const e = encounter, c = CREATURES[e.creature];
   encounter = null;
   if (approachId === "retreat") { toast("You back away and leave the seam be."); return; }
+  // item-gated responses consume the item
+  if (approachId === "offer") { const f = firstOfKind("fruit"); if (f) state.inv[f] -= 1; }
+  if (approachId === "light") { if ((state.inv.candle || 0) > 0) state.inv.candle -= 1; }
   const best = approachId === c.calmWith;
   if (best) {
-    if (c.drop === "stone") { const s = mineDrop(); state.inv[s] = (state.inv[s] || 0) + 1; }
+    if (c.drop === "stone") { const s = mineDrop(e.depth); state.inv[s] = (state.inv[s] || 0) + 1; }
     else if (c.drop) { state.inv[c.drop] = (state.inv[c.drop] || 0) + 1; }
     toast(c.best);
   } else {
     toast(c.ok);
   }
-  doMineYield(e.slot);   // settled — you carry on mining
+  doMineYield(e.key, e.depth);   // settled — you carry on mining
 }
 
 // Open the Book of Shadows (overview + a page per studied herb).
@@ -1579,7 +1692,7 @@ function advanceDay() {
   state.observedToday = false;
   state.todayLog = [];
   for (const id in state.pots) refreshPot(id);   // pots regrow overnight
-  for (const s in state.oreNodes) refreshNode(s); // ore seams replenish
+  for (const k in state.oreNodes) refreshNode(k); // ore seams replenish
   loadRoom("dorm", 5, 9);   // wake up at home
   toast("Day " + state.dayCount + " — " + weekday() + ". Good morning!");
   save();
@@ -1835,8 +1948,9 @@ onDraw(() => {
     // garden planters: soil bed; show seedling growth -> ripe crop
     // mine ore nodes: a rock with gleaming ore; depletes and replenishes
     if (o.nodeSlot !== undefined) {
-      refreshNode(o.nodeSlot);
-      const n = state.oreNodes[o.nodeSlot];
+      const _k = nodeKey(o);
+      refreshNode(_k);
+      const n = state.oreNodes[_k];
       const ore = n ? n.ore : ORE_PER;
       const live = ore > 0;
       const daysLeft = n ? Math.max(0, n.readyDay - state.dayCount) : 0;
@@ -2206,24 +2320,30 @@ function handlePlantTap(m) {
 
 /* ---------- Mine creature encounter (defensive choices, no combat) ---------- */
 function encounterRows() {
-  const rows = [], x = 28, w = CANVAS_W - 56, H = 30; let y = 250;
-  for (const a of APPROACHES) { rows.push({ x, y, w, h: H, id: a.id, label: a.label }); y += H + 6; }
+  const rows = [], x = 28, w = CANVAS_W - 56, H = 28; let y = 248;
+  for (const a of APPROACHES) {
+    if (a.needs && !firstOfKind(a.needs)) continue;   // item-gated: only if you carry it
+    rows.push({ x, y, w, h: H, id: a.id, label: a.label }); y += H + 5;
+  }
   return rows;
 }
 function drawEncounter() {
   const c = CREATURES[encounter.creature];
+  const known = !!state.creaturesKnown[encounter.creature];
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.88 });
-  // creature portrait (placeholder block) + name + flavour
-  drawRect({ pos: vec2(CANVAS_W / 2, 130), width: 84, height: 84, anchor: "center", color: col(c.color), radius: 8,
+  drawRect({ pos: vec2(CANVAS_W / 2, 120), width: 84, height: 84, anchor: "center", color: col(c.color), radius: 8,
              outline: { color: rgb(20, 16, 26), width: 2 } });
-  drawText({ text: c.name, pos: vec2(CANVAS_W / 2, 184), size: 16, color: rgb(255, 225, 150), anchor: "center" });
-  drawText({ text: c.appear, pos: vec2(CANVAS_W / 2, 210), size: 12, color: rgb(225, 220, 240), anchor: "center", width: CANVAS_W - 60 });
-  drawText({ text: "How do you defend yourself? (no fighting)", pos: vec2(CANVAS_W / 2, 234), size: 10, color: rgb(170, 170, 190), anchor: "center" });
+  drawText({ text: c.name + (c.tier === "spirit" ? "  (spirit)" : ""), pos: vec2(CANVAS_W / 2, 172), size: 16, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: c.appear, pos: vec2(CANVAS_W / 2, 198), size: 12, color: rgb(225, 220, 240), anchor: "center", width: CANVAS_W - 60 });
+  drawText({ text: known ? "Keeper Fenn taught you about this one." : "You don't know this creature yet — guess, or back away.",
+             pos: vec2(CANVAS_W / 2, 224), size: 10, color: rgb(170, 170, 190), anchor: "center", width: CANVAS_W - 50 });
   for (const b of encounterRows()) {
     const retreat = b.id === "retreat";
-    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(46, 40, 58), radius: 6,
-               outline: { color: retreat ? rgb(150, 130, 200) : rgb(120, 180, 160), width: 1 } });
-    drawText({ text: b.label, pos: vec2(b.x + 12, b.y + b.h / 2), size: 12, color: rgb(225, 225, 240), anchor: "left" });
+    const hint = known && b.id === c.calmWith;   // highlight the response you studied
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: hint ? rgb(58, 70, 56) : rgb(46, 40, 58), radius: 6,
+               outline: { color: hint ? rgb(150, 220, 150) : (retreat ? rgb(150, 130, 200) : rgb(120, 180, 160)), width: hint ? 2 : 1 } });
+    drawText({ text: b.label + (hint ? "   (try this)" : ""), pos: vec2(b.x + 12, b.y + b.h / 2), size: 12,
+               color: hint ? rgb(220, 245, 220) : rgb(225, 225, 240), anchor: "left" });
   }
 }
 function handleEncounterTap(m) {
@@ -2235,7 +2355,8 @@ function handleEncounterTap(m) {
 // illustrated page per studied herb (in HERB_ORDER). Prev/Next/Close buttons.
 function bosHerbPages() { return HERB_ORDER.filter((h) => state.herbsKnown[h]); }
 function bosCrystalPages() { return CRYSTAL_ORDER.filter((c) => state.crystalsKnown[c]); }
-function bosTotalPages() { return 1 + bosHerbPages().length + bosCrystalPages().length; }
+function bosCreaturePages() { return CREATURE_ORDER.filter((c) => state.creaturesKnown[c]); }
+function bosTotalPages() { return 1 + bosHerbPages().length + bosCrystalPages().length + bosCreaturePages().length; }
 function bosButtons() {
   const y = CANVAS_H - 90, h = 26;
   return [
@@ -2267,11 +2388,13 @@ function drawJournal() {                       // (the Book of Shadows)
   const px = bx + 12, py = by + 12, pw = bw - 24, ph = bh - 24;
   drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
 
-  const herbs = bosHerbPages(), crystals = bosCrystalPages();
+  const herbs = bosHerbPages(), crystals = bosCrystalPages(), creatures = bosCreaturePages();
   if (bosPage > bosTotalPages() - 1) bosPage = bosTotalPages() - 1;
+  const i = bosPage - 1;
   if (bosPage === 0) drawBosOverview(px, py, pw, ph);
-  else if (bosPage - 1 < herbs.length) drawHerbPage(herbs[bosPage - 1], px, py, pw, ph);
-  else drawCrystalPage(crystals[bosPage - 1 - herbs.length], px, py, pw, ph);
+  else if (i < herbs.length) drawHerbPage(herbs[i], px, py, pw, ph);
+  else if (i - herbs.length < crystals.length) drawCrystalPage(crystals[i - herbs.length], px, py, pw, ph);
+  else drawCreaturePage(creatures[i - herbs.length - crystals.length], px, py, pw, ph);
 
   // page buttons
   for (const b of bosButtons()) {
@@ -2304,10 +2427,10 @@ function drawBosOverview(px, py, pw, ph) {
   const studied = bosHerbPages().length;
   drawText({ text: "Herbal:  " + studied + " of " + HERB_ORDER.length + " plants studied.", pos: vec2(x, y),
              size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
-  const stones = bosCrystalPages().length;
-  drawText({ text: "Stones:  " + stones + " of " + CRYSTAL_ORDER.length + " studied.", pos: vec2(x, y),
-             size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
-  drawText({ text: (studied || stones) ? "Turn the page for your plant & stone entries." : "Attend class to fill these pages.",
+  const stones = bosCrystalPages().length, beasts = bosCreaturePages().length;
+  drawText({ text: "Stones:  " + stones + " of " + CRYSTAL_ORDER.length + " · Beasts:  " + beasts + " of " + CREATURE_ORDER.length,
+             pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
+  drawText({ text: (studied || stones || beasts) ? "Turn the page for plants, stones & beasts." : "Attend class to fill these pages.",
              pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
 
   // autosave note + reset button
@@ -2362,6 +2485,25 @@ function drawCrystalPage(id, px, py, pw, ph) {
   drawText({ text: "Chakra:  " + c.chakra, pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 22;
   drawText({ text: "Powers:  " + c.powers.join(", "), pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 30;
   drawText({ text: "Use:  " + c.uses, pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 44;
+  drawText({ text: '"' + c.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
+}
+
+function drawCreaturePage(id, px, py, pw, ph) {
+  const c = CREATURES[id];
+  const x = px + 16, INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110);
+  const approach = (APPROACHES.find((a) => a.id === c.calmWith) || {}).label || c.calmWith;
+  let y = py + 16;
+  drawText({ text: c.name, pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: HDR, anchor: "center" }); y += 24;
+  drawText({ text: c.tier === "spirit" ? "mine-spirit" : "mundane creature", pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center" }); y += 20;
+  // portrait (placeholder colour block — no sprite yet)
+  const iy = y + 30;
+  drawRect({ pos: vec2(px + pw / 2, iy), width: 66, height: 66, anchor: "center", color: rgb(228, 214, 180),
+             radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
+  drawRect({ pos: vec2(px + pw / 2, iy), width: 44, height: 44, anchor: "center", color: col(c.color), radius: 6,
+             outline: { color: rgb(255, 255, 255), width: 1 } });
+  y = iy + 44;
+  drawText({ text: "Settle it by:  " + approach, pos: vec2(x, y), size: 13, font: hf(), color: HDR, width: pw - 28, lineSpacing: 2 }); y += 30;
+  if (c.drop) { drawText({ text: "Leaves:  " + (c.drop === "stone" ? "a bit of ore" : ITEMS[c.drop].name), pos: vec2(x, y), size: 13, font: hf(), color: INK }); y += 20; }
   drawText({ text: '"' + c.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
 }
 
