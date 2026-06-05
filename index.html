@@ -510,8 +510,14 @@ const RECIPES = {
     does: "A ward you carry. (+defense)",
     method: "Char the salt with rosemary and seal it in glass; keep it on you or by the door.",
   },
+  health_draught: {
+    id: "health_draught", name: "Health Draught", herb: "rose", heat: "med",
+    needs: { spring_water: 1, rose: 1, mint: 1 }, makes: "health_potion",
+    does: "Restores health when drunk.",
+    method: "Steep rose hips and mint in spring water — a soothing, restorative tea.",
+  },
 };
-const RECIPE_ORDER = ["calm_tonic", "prosperity_oil", "mint_wash", "dream_tea", "wishing_brew", "rose_love_oil", "witch_bottle"];
+const RECIPE_ORDER = ["calm_tonic", "prosperity_oil", "mint_wash", "dream_tea", "wishing_brew", "rose_love_oil", "health_draught", "witch_bottle"];
 const HEATS = ["low", "med", "high"];
 const heatWord = (h) => ({ low: "warm gently", med: "steep", high: "simmer hard" }[h] || h);
 

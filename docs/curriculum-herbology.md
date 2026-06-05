@@ -167,6 +167,7 @@ one dream item, no overlap.
 | **Dandelion Seer's Tea** | tea | moon water + dandelion | simmer | **divination** & clear sight | Cunningham: dandelion-root tea for divination. |
 | **Rose Love Oil** | oil | oil + rose | warm gently | love & comfort (anoint/gift) | Rose = love/Venus; rose-infused anointing oils are traditional. |
 | **Witch's Bottle** | carried charm | salt + rosemary | seal/char | **protection** (+defense) | Real protective charm: salt + rosemary (often + iron pins) sealed in a bottle, carried or buried. |
+| **Health Draught** | tea | spring water + rose + mint | steep | restores **health** | Rosehip + mint tea — a real restorative (rose hips: vitamin C / anti-inflammatory; mint: soothing). |
 
 *Rosemary is now a core (7th) plant. Protection moved off basil (basil = prosperity)
 onto the salt-based Witch's Bottle. The bottle raises a **defense** stat — a hook for
@@ -230,6 +231,7 @@ Potion practices:
 - Rosewater (making + love/cleansing magic) — [Sacred Wicca — rose water recipe](https://sacredwicca.com/rose-water-recipe) · [Moonlight Mysteries](https://www.moonlightmysteries.com/blog/unlock-the-magic-rose-water-in-your-craft/)
 - Dandelion-root divination tea — [LearnReligions](https://www.learnreligions.com/dandelion-magic-and-folklore-4588986) · [Greenman Meadows](https://greenmanmeadows.com/dandelion-magic/)
 - Moon water — [The Pagan Grimoire](https://www.pagangrimoire.com/moon-water/)
+- Rosehip / mint restorative tea — [Rose hips — Traditional Medicinals](https://www.traditionalmedicinals.com/blogs/herb-library/rose-hips) · [Healthline — anti-inflammatory teas](https://www.healthline.com/nutrition/anti-inflammatory-tea)
 - Witch's bottle (salt + rosemary protection charm) — [The Pagan Grimoire — Witch's Bottle](https://www.pagangrimoire.com/witch-bottle/) · salt as protection: [Learn Religions](https://www.learnreligions.com/salt-in-magic-and-folklore-2562823)
 - Rosemary (protection/memory/purification) — [LearnReligions — rosemary magic](https://www.learnreligions.com/rosemary-history-and-folklore-2562383)
 
