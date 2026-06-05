@@ -297,12 +297,34 @@ const ITEMS = {
       { s: "Prof. Beryl", t: "Charge it under the full moon, to which it is kin." },
     ],
   },
+
+  // ---- Market goods (bought in the village shops; flavour + future use) ----
+  apple:       { name: "Apple",       kind: "fruit", color: [200, 70, 70],  cost: 4,  sell: 2, lore: "Crisp apple — love and abundance in kitchen witchery." },
+  lemon:       { name: "Lemon",       kind: "fruit", color: [235, 220, 90], cost: 4,  sell: 2, lore: "Lemon — for cleansing and bright clarity." },
+  pomegranate: { name: "Pomegranate", kind: "fruit", color: [170, 50, 60],  cost: 8,  sell: 4, lore: "Pomegranate — prosperity, fertility, and the underworld mysteries." },
+  candle:      { name: "Candle",      kind: "tool",  color: [240, 230, 180], cost: 5,  sell: 2, lore: "A spell candle — burn it dressed to your intent." },
+  pendulum:    { name: "Pendulum",    kind: "tool",  color: [150, 150, 175], cost: 18, sell: 8, lore: "A pendulum — dowse for yes-or-no answers." },
+  tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
+  wand:        { name: "Wand",        kind: "tool",  color: [150, 110, 70],  cost: 30, sell: 14, lore: "A wand of hazel — directs and focuses your will." },
 };
 
 // Order Prof. Beryl teaches the stones; each Crystals lesson adds a Book of
 // Shadows page and a sample stone to your bag.
 const CRYSTAL_ORDER = ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"];
 const STONE_SELL = 12;  // fallback stone price if an item lacks its own
+
+/* ---------- Village shops ----------
+   Each shop's keeper opens a browse/buy panel. `seeds:true` lists seed packets
+   for herbs you've studied; `buy` lists fixed goods (price from item.cost, or
+   2x its sell value); `sellKinds` are the item kinds the shop will buy from you. */
+const SHOPS = {
+  general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool"] },
+  gem:     { name: "Gem Shop",       buy: ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"], sellKinds: ["stone"] },
+  seed:    { name: "Seed & Garden",  seeds: true, buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
+  tools:   { name: "Magical Tools",  buy: ["candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
+  fruit:   { name: "Fruit Stall",    buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
+};
+const buyCost = (id) => ITEMS[id].cost != null ? ITEMS[id].cost : (ITEMS[id].sell != null ? ITEMS[id].sell * 2 : 10);
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -763,21 +785,98 @@ const ROOMS = {
     ],
   },
 
+  // ---- The village: a square, a market street, and shops you can enter ----
   village: {
-    name: "Village Market",
-    floor: [44, 58, 70],
+    name: "Village Square",
+    floor: [70, 66, 74],
     grid: STD_GRID,
     doors: [
       { gx: 11, gy: 6, to: "courtyard", atGx: 1, atGy: 5, label: "Courtyard >" },
+      { gx: 5,  gy: 0, to: "market",    atGx: 5, atGy: 10, label: "Market ^" },
     ],
     inters: [
-      { gx: 6, gy: 3, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "shop" },
+      { gx: 6, gy: 6, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "shop", shop: "general" },
     ],
     decor: [
-      { gx: 9, gy: 3, kind: "crystal_ball", size: 34 },
+      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 10, gy: 2, kind: "lantern", size: 26 },
+      { gx: 2, gy: 9, kind: "pots" },
+      { gx: 9, gy: 9, kind: "pots" },
+      { gx: 2, gy: 5, kind: "barrel" },
+      { gx: 5, gy: 8, kind: "coin_pouch", solid: false, size: 22 },
+    ],
+  },
+  market: {
+    name: "Market Street",
+    floor: [80, 72, 62],
+    grid: STD_GRID,
+    doors: [
+      { gx: 5,  gy: 11, to: "village",    atGx: 5, atGy: 1,  label: "Square v" },
+      { gx: 2,  gy: 0,  to: "gem_shop",   atGx: 5, atGy: 10, label: "Gems ^" },
+      { gx: 8,  gy: 0,  to: "seed_shop",  atGx: 5, atGy: 10, label: "Seeds ^" },
+      { gx: 0,  gy: 4,  to: "tools_shop", atGx: 5, atGy: 10, label: "Tools <" },
+      { gx: 11, gy: 4,  to: "fruit_shop", atGx: 5, atGy: 10, label: "Fruit >" },
+    ],
+    inters: [],
+    decor: [
+      { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
+      { gx: 10, gy: 1,  kind: "lantern", size: 26 },
+      { gx: 1,  gy: 9,  kind: "barrel" },
+      { gx: 10, gy: 9,  kind: "barrel" },
+      { gx: 4,  gy: 8,  kind: "pots" },
+      { gx: 7,  gy: 8,  kind: "pots" },
+    ],
+  },
+  gem_shop: {
+    name: "Gem Shop",
+    floor: [60, 56, 80],
+    grid: STD_GRID,
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 2, atGy: 1, label: "Street v" } ],
+    inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gemcutter", color: [160, 130, 215], action: "shop", shop: "gem" } ],
+    decor: [
+      { gx: 2, gy: 2, kind: "crystal_ball", size: 30 },
+      { gx: 9, gy: 2, kind: "crystal_ball", size: 30 },
       { gx: 2, gy: 8, kind: "barrel" },
-      { gx: 2, gy: 2, kind: "lantern", size: 26 },
-      { gx: 5, gy: 9, kind: "coin_pouch", solid: false, size: 22 },
+      { gx: 9, gy: 8, kind: "lantern", size: 26 },
+    ],
+  },
+  seed_shop: {
+    name: "Seed & Garden",
+    floor: [54, 64, 48],
+    grid: STD_GRID,
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 8, atGy: 1, label: "Street v" } ],
+    inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gardener", color: [120, 180, 90], action: "shop", shop: "seed" } ],
+    decor: [
+      { gx: 2, gy: 2, kind: "pots" },
+      { gx: 9, gy: 2, kind: "pots" },
+      { gx: 2, gy: 8, kind: "watering_can", size: 30 },
+      { gx: 9, gy: 8, kind: "seed_packet", size: 22 },
+    ],
+  },
+  tools_shop: {
+    name: "Magical Tools",
+    floor: [58, 52, 66],
+    grid: STD_GRID,
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 1, atGy: 4, label: "Street v" } ],
+    inters: [ { gx: 6, gy: 2, kind: "shop", name: "Toolwright", color: [205, 170, 120], action: "shop", shop: "tools" } ],
+    decor: [
+      { gx: 2, gy: 2, kind: "bookshelf" },
+      { gx: 9, gy: 2, kind: "crystal_ball", size: 28 },
+      { gx: 2, gy: 8, kind: "barrel" },
+      { gx: 9, gy: 8, kind: "lantern", size: 26 },
+    ],
+  },
+  fruit_shop: {
+    name: "Fruit Stall",
+    floor: [72, 60, 52],
+    grid: STD_GRID,
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 10, atGy: 4, label: "Street v" } ],
+    inters: [ { gx: 6, gy: 2, kind: "shop", name: "Grocer", color: [210, 120, 100], action: "shop", shop: "fruit" } ],
+    decor: [
+      { gx: 2, gy: 2, kind: "pots" },
+      { gx: 9, gy: 2, kind: "pots" },
+      { gx: 2, gy: 8, kind: "barrel" },
+      { gx: 9, gy: 8, kind: "barrel" },
     ],
   },
 };
@@ -1094,7 +1193,7 @@ function dispatchAction(o) {
     case "class":   return actClass(o.subject);
     case "forage":  return actForage(o);
     case "brew":    return actBrew();
-    case "shop":    return actShop();
+    case "shop":    return actShop(o);
     case "planter": return actPlanter(o);
     case "friend":  return actFriend();
     case "sleep":   return actSleep();
@@ -1296,12 +1395,20 @@ function plantSeed(slot, id) {
 }
 
 /* ---------- Merchant shop (buy seeds, sell goods) ---------- */
-function actShop() { shopOpen = true; }
+function actShop(o) { shopOpen = (o && o.shop) || "general"; }
 function buySeed(id) {
   if (state.coin < SEED_COST) { toast("Not enough coin."); return; }
   state.coin -= SEED_COST;
   state.seeds[id] = (state.seeds[id] || 0) + 1;
   toast("Bought a " + ITEMS[id].name + " seed.");
+  save();
+}
+function buyItem(id) {
+  const cost = buyCost(id);
+  if (state.coin < cost) { toast("Not enough coin."); return; }
+  state.coin -= cost;
+  state.inv[id] = (state.inv[id] || 0) + 1;
+  toast("Bought " + ITEMS[id].name + ".");
   save();
 }
 function sellItem(id) {
@@ -1853,29 +1960,43 @@ function drawTimetable() {
 
 /* ---------- Merchant shop overlay ---------- */
 function shopRows() {
+  const shop = SHOPS[shopOpen] || SHOPS.general;
   const rows = [], x = 22, w = CANVAS_W - 44, H = 21; let y = 96;
   const push = (o) => { o.x = x; o.y = y; o.w = w; o.h = H; rows.push(o); y += H; };
-  push({ type: "hdr", label: "Buy seeds  (" + SEED_COST + "c each)" });
-  let anyBuy = false;
-  for (const id of HERB_ORDER) {
-    if (!state.herbsKnown[id]) continue; anyBuy = true;
-    push({ type: "buy", id, label: ITEMS[id].name + " seed", sub: "have " + (state.seeds[id] || 0), price: SEED_COST });
+  // seed packets (for studied herbs)
+  if (shop.seeds) {
+    push({ type: "hdr", label: "Buy seeds  (" + SEED_COST + "c each)" });
+    let any = false;
+    for (const id of HERB_ORDER) {
+      if (!state.herbsKnown[id]) continue; any = true;
+      push({ type: "seed", id, label: ITEMS[id].name + " seed", sub: "have " + (state.seeds[id] || 0), price: SEED_COST });
+    }
+    if (!any) push({ type: "note", label: "(study herbs to unlock their seeds)" });
+    y += 6;
   }
-  if (!anyBuy) push({ type: "note", label: "(study herbs to unlock their seeds)" });
-  y += 6;
-  push({ type: "hdr", label: "Sell" });
-  const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && ["potion", "herb", "stone"].includes(ITEMS[id].kind));
-  if (!sellable.length) push({ type: "note", label: "(nothing to sell)" });
-  for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: ITEMS[id].sell != null ? ITEMS[id].sell : HERB_SELL });
-  y += 8;
+  // fixed goods
+  if (shop.buy && shop.buy.length) {
+    push({ type: "hdr", label: "Buy" });
+    for (const id of shop.buy) push({ type: "buy", id, label: ITEMS[id].name, sub: "have " + (state.inv[id] || 0), price: buyCost(id) });
+    y += 6;
+  }
+  // selling
+  if (shop.sellKinds && shop.sellKinds.length) {
+    push({ type: "hdr", label: "Sell" });
+    const sellable = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && shop.sellKinds.includes(ITEMS[id].kind));
+    if (!sellable.length) push({ type: "note", label: "(nothing they'll buy)" });
+    for (const id of sellable) push({ type: "sell", id, label: ITEMS[id].name + " x" + state.inv[id], price: ITEMS[id].sell != null ? ITEMS[id].sell : HERB_SELL });
+    y += 8;
+  }
   push({ type: "close", label: "Close" });
   return rows;
 }
 function drawShop() {
+  const shop = SHOPS[shopOpen] || SHOPS.general;
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.86 });
   drawRect({ pos: vec2(14, 44), width: CANVAS_W - 28, height: CANVAS_H - 80, color: rgb(34, 28, 44), radius: 10,
              outline: { color: rgb(150, 120, 60), width: 2 } });
-  drawText({ text: "Merchant", pos: vec2(CANVAS_W / 2, 56), size: 16, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: shop.name, pos: vec2(CANVAS_W / 2, 56), size: 16, color: rgb(255, 225, 150), anchor: "center" });
   drawText({ text: "Coin " + state.coin, pos: vec2(CANVAS_W / 2, 78), size: 11, color: rgb(255, 235, 175), anchor: "center" });
   for (const b of shopRows()) {
     if (b.type === "hdr") {
@@ -1883,14 +2004,15 @@ function drawShop() {
     } else if (b.type === "note") {
       drawText({ text: b.label, pos: vec2(b.x + 6, b.y + 4), size: 10, color: rgb(150, 150, 170) });
     } else {
-      const accent = b.type === "close" ? rgb(150, 130, 200) : (b.type === "buy" ? rgb(120, 180, 130) : rgb(220, 170, 110));
+      const isBuy = b.type === "buy" || b.type === "seed";
+      const accent = b.type === "close" ? rgb(150, 130, 200) : (isBuy ? rgb(120, 180, 130) : rgb(220, 170, 110));
       drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h - 3, color: rgb(46, 40, 58), radius: 5, outline: { color: accent, width: 1 } });
       if (b.type === "close") {
         drawText({ text: "Close", pos: vec2(b.x + b.w / 2, b.y + 5), size: 12, color: rgb(220, 220, 235), anchor: "center" });
       } else {
         drawText({ text: b.label, pos: vec2(b.x + 8, b.y + 5), size: 11, color: rgb(225, 225, 240) });
         if (b.sub) drawText({ text: b.sub, pos: vec2(b.x + b.w - 70, b.y + 5), size: 9, color: rgb(160, 160, 180), anchor: "right" });
-        drawText({ text: (b.type === "buy" ? "-" : "+") + b.price + "c", pos: vec2(b.x + b.w - 8, b.y + 5), size: 11, color: accent, anchor: "right" });
+        drawText({ text: (isBuy ? "-" : "+") + b.price + "c", pos: vec2(b.x + b.w - 8, b.y + 5), size: 11, color: accent, anchor: "right" });
       }
     }
   }
@@ -1899,7 +2021,8 @@ function handleShopTap(m) {
   for (const b of shopRows()) {
     if (!pointIn(m, b)) continue;
     if (b.type === "close") shopOpen = false;
-    else if (b.type === "buy") buySeed(b.id);
+    else if (b.type === "seed") buySeed(b.id);
+    else if (b.type === "buy") buyItem(b.id);
     else if (b.type === "sell") sellItem(b.id);
     return;
   }
