@@ -12,8 +12,11 @@
   mineral, element/planet/chakra, properties, and practical use. Attending records
   a **Book of Shadows** entry, a skill point, and gives you **one sample stone**.
 - **Selling:** stones are sellable to the Village merchant (each has its own value).
-- **Future:** a **Mining** skill in the caves to find more stones (and possibly a
-  light combat/encounter layer), feeding the same selling/crafting economy.
+- **Mining (in game):** buy a **pickaxe** at the Magical Tools shop, then work ore
+  seams in **The Mines** (off the Village Square). Each strike yields a random
+  stone — commoner stones are likelier, and a higher **Mining** skill improves the
+  odds of rarer ones. Seams deplete and replenish over days. Sell stones in the
+  village. *Future:* deeper levels and an optional combat/encounter layer.
 
 ## Year-One stones
 

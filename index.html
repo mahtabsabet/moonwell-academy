@@ -306,6 +306,7 @@ const ITEMS = {
   pendulum:    { name: "Pendulum",    kind: "tool",  color: [150, 150, 175], cost: 18, sell: 8, lore: "A pendulum — dowse for yes-or-no answers." },
   tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
   wand:        { name: "Wand",        kind: "tool",  color: [150, 110, 70],  cost: 30, sell: 14, lore: "A wand of hazel — directs and focuses your will." },
+  pickaxe:     { name: "Pickaxe",     kind: "tool",  color: [150, 140, 150], cost: 25, sell: 10, lore: "An iron pickaxe — for working ore in the mines." },
 };
 
 // Order Prof. Beryl teaches the stones; each Crystals lesson adds a Book of
@@ -321,10 +322,22 @@ const SHOPS = {
   general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool"] },
   gem:     { name: "Gem Shop",       buy: ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"], sellKinds: ["stone"] },
   seed:    { name: "Seed & Garden",  seeds: true, buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
-  tools:   { name: "Magical Tools",  buy: ["candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
+  tools:   { name: "Magical Tools",  buy: ["pickaxe", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
   fruit:   { name: "Fruit Stall",    buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
 };
 const buyCost = (id) => ITEMS[id].cost != null ? ITEMS[id].cost : (ITEMS[id].sell != null ? ITEMS[id].sell * 2 : 10);
+
+/* ---------- The Mines ----------
+   Ore nodes you work with a pickaxe; each yields a random stone (commoner stones
+   weighted higher; a higher Mining skill improves the odds of rarer ones). Nodes
+   deplete and regrow over ORE_REGROW days, like greenhouse pots. */
+const MINE_NODES = [[2, 3], [5, 3], [8, 3], [3, 7], [7, 7]];
+const ORE_PER = 3;
+const ORE_REGROW = 4;
+const ORE_TABLE = [   // [crystal id, base weight]
+  ["clear_quartz", 30], ["amethyst", 24], ["rose_quartz", 20],
+  ["citrine", 12], ["black_tourmaline", 9], ["moonstone", 5],
+];
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -791,8 +804,9 @@ const ROOMS = {
     floor: [70, 66, 74],
     grid: STD_GRID,
     doors: [
-      { gx: 11, gy: 6, to: "courtyard", atGx: 1, atGy: 5, label: "Courtyard >" },
-      { gx: 5,  gy: 0, to: "market",    atGx: 5, atGy: 10, label: "Market ^" },
+      { gx: 11, gy: 6, to: "courtyard", atGx: 1,  atGy: 5,  label: "Courtyard >" },
+      { gx: 5,  gy: 0, to: "market",    atGx: 5,  atGy: 10, label: "Market ^" },
+      { gx: 0,  gy: 6, to: "mine",      atGx: 10, atGy: 6,  label: "Mine <" },
     ],
     inters: [
       { gx: 6, gy: 6, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "shop", shop: "general" },
@@ -877,6 +891,22 @@ const ROOMS = {
       { gx: 9, gy: 2, kind: "pots" },
       { gx: 2, gy: 8, kind: "barrel" },
       { gx: 9, gy: 8, kind: "barrel" },
+    ],
+  },
+
+  // ---- The Mines: work ore with a pickaxe to find stones ----
+  mine: {
+    name: "The Mines",
+    floor: [40, 38, 48],
+    grid: STD_GRID,
+    doors: [ { gx: 11, gy: 6, to: "village", atGx: 1, atGy: 6, label: "Village >" } ],
+    inters: MINE_NODES.map((s, i) => ({
+      gx: s[0], gy: s[1], kind: "ore", name: "Ore", color: [122, 112, 124], action: "mine", nodeSlot: i,
+    })),
+    decor: [
+      { gx: 1, gy: 1, kind: "lantern", size: 26 },
+      { gx: 1, gy: 10, kind: "lantern", size: 26 },
+      { gx: 10, gy: 10, kind: "barrel" },
     ],
   },
 };
@@ -994,6 +1024,7 @@ function freshState() {
     herbsKnown: {},       // herb id -> true (studied in Herbology)
     crystalsKnown: {},    // crystal id -> true (studied in Crystals)
     pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
+    oreNodes: {},         // mine node slot -> { ore, readyDay }
     seeds: {},            // herb id -> count (kept out of the satchel HUD)
     planters: {},         // planter slot -> { herbId, plantedDay } | undefined
     journal: {},          // subject id -> takeaway line (recorded on first lesson)
@@ -1195,6 +1226,7 @@ function dispatchAction(o) {
     case "brew":    return actBrew();
     case "shop":    return actShop(o);
     case "planter": return actPlanter(o);
+    case "mine":    return actMine(o);
     case "friend":  return actFriend();
     case "sleep":   return actSleep();
     case "journal": return actJournal();
@@ -1331,6 +1363,39 @@ function isIdealMoon(id) {
   return false;
 }
 
+/* ---------- Mining ---------- */
+function refreshNode(slot) {
+  const n = state.oreNodes[slot];
+  if (n && n.ore <= 0 && state.dayCount >= n.readyDay) n.ore = ORE_PER;
+}
+// Weighted random stone; the higher your Mining skill the better the rare odds.
+function mineDrop() {
+  const lvl = state.skills.mining || 0;
+  const weighted = ORE_TABLE.map(([id, w], i) => [id, i < 3 ? w : w + lvl * 0.6]); // rarer stones (idx>=3) improve with skill
+  const total = weighted.reduce((s, [, w]) => s + w, 0);
+  let r = Math.random() * total;
+  for (const [id, w] of weighted) { if ((r -= w) <= 0) return id; }
+  return weighted[0][0];
+}
+function actMine(o) {
+  if ((state.inv.pickaxe || 0) <= 0) {
+    toast("You need a pickaxe — buy one at Magical Tools.");
+    return;
+  }
+  const slot = o.nodeSlot;
+  if (!state.oreNodes[slot]) state.oreNodes[slot] = { ore: ORE_PER, readyDay: state.dayCount };
+  refreshNode(slot);
+  const n = state.oreNodes[slot];
+  if (n.ore <= 0) { toast("This seam is spent — back in " + Math.max(0, n.readyDay - state.dayCount) + "d."); return; }
+  n.ore -= 1;
+  if (n.ore <= 0) n.readyDay = state.dayCount + ORE_REGROW;
+  const id = mineDrop();
+  state.inv[id] = (state.inv[id] || 0) + 1;
+  state.skills.mining = (state.skills.mining || 0) + 1;
+  state.todayLog.push("Mined " + ITEMS[id].name);
+  toast("Struck " + ITEMS[id].name + "!");
+}
+
 // Open the Book of Shadows (overview + a page per studied herb).
 function actJournal() { journalOpen = true; bosPage = 0; resetArmed = false; }
 // Reset button rect (overview page of the Book of Shadows).
@@ -1455,6 +1520,7 @@ function advanceDay() {
   state.observedToday = false;
   state.todayLog = [];
   for (const id in state.pots) refreshPot(id);   // pots regrow overnight
+  for (const s in state.oreNodes) refreshNode(s); // ore seams replenish
   loadRoom("dorm", 5, 9);   // wake up at home
   toast("Day " + state.dayCount + " — " + weekday() + ". Good morning!");
   save();
@@ -1707,6 +1773,25 @@ onDraw(() => {
     const p = pulse();
 
     // garden planters: soil bed; show seedling growth -> ripe crop
+    // mine ore nodes: a rock with gleaming ore; depletes and replenishes
+    if (o.nodeSlot !== undefined) {
+      refreshNode(o.nodeSlot);
+      const n = state.oreNodes[o.nodeSlot];
+      const ore = n ? n.ore : ORE_PER;
+      const live = ore > 0;
+      const daysLeft = n ? Math.max(0, n.readyDay - state.dayCount) : 0;
+      drawRect({ pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE / 2), width: TILE - 8, height: TILE - 10, anchor: "center",
+                 color: live ? rgb(96, 90, 104) : rgb(60, 58, 66), radius: 4, outline: { color: rgb(40, 38, 46), width: 2 } });
+      if (live) for (let i = 0; i < 3; i++)   // little ore gleams
+        drawRect({ pos: vec2(o.gx * TILE + 8 + i * 7, ORIGIN_Y + o.gy * TILE + 12 + (i % 2) * 8), width: 4, height: 4,
+                   color: rgb(150, 200, 230), radius: 1, opacity: 0.9 });
+      if (live) drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+                 color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+      drawText({ text: live ? "Ore x" + ore : "spent (" + daysLeft + "d)", pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1),
+                 size: 8, anchor: "center", width: TILE * 2.6, color: live ? rgb(210, 225, 240) : rgb(150, 150, 165) });
+      continue;
+    }
+
     if (o.planterSlot !== undefined) {
       const pl = state.planters[o.planterSlot];
       // soil bed (sprite if supplied, else a brown rect)
@@ -2119,7 +2204,7 @@ function drawBosOverview(px, py, pw, ph) {
   drawText({ text: "Book of Shadows", pos: vec2(px + pw / 2, y), size: 20, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 26;
   drawText({ text: "Coin " + state.coin + "    Friendship " + state.friendship, pos: vec2(px + pw / 2, y),
              size: 13, font: hf(), color: rgb(74, 52, 34), anchor: "center" }); y += 18;
-  drawText({ text: "Defense " + defense() + (defense() ? "  (carrying a ward)" : "  (carry a Witch's Bottle)"),
+  drawText({ text: "Defense " + defense() + "    Mining " + (state.skills.mining || 0),
              pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: rgb(96, 58, 110), anchor: "center" }); y += 22;
   drawText({ text: "Studies", pos: vec2(x, y), size: 15, font: hf(), color: rgb(96, 58, 110) }); y += 18;
   for (const id in SUBJECTS) {
