@@ -307,6 +307,9 @@ const ITEMS = {
   tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
   wand:        { name: "Wand",        kind: "tool",  color: [150, 110, 70],  cost: 30, sell: 14, lore: "A wand of hazel — directs and focuses your will." },
   pickaxe:     { name: "Pickaxe",     kind: "tool",  color: [150, 140, 150], cost: 25, sell: 10, lore: "An iron pickaxe — for working ore in the mines." },
+  // creature materials (calmed mine-dwellers leave these behind)
+  spider_silk: { name: "Spider Silk", kind: "material", color: [212, 212, 222], sell: 8, lore: "Fine cave-spider silk — for weaving charms and bindings." },
+  beeswax:     { name: "Beeswax",     kind: "material", color: [236, 206, 120], sell: 6, lore: "Wax from a wasp comb — for candles and seals." },
 };
 
 // Order Prof. Beryl teaches the stones; each Crystals lesson adds a Book of
@@ -319,7 +322,7 @@ const STONE_SELL = 12;  // fallback stone price if an item lacks its own
    for herbs you've studied; `buy` lists fixed goods (price from item.cost, or
    2x its sell value); `sellKinds` are the item kinds the shop will buy from you. */
 const SHOPS = {
-  general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool"] },
+  general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool", "material"] },
   gem:     { name: "Gem Shop",       buy: ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"], sellKinds: ["stone"] },
   seed:    { name: "Seed & Garden",  seeds: true, buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
   tools:   { name: "Magical Tools",  buy: ["pickaxe", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
@@ -338,6 +341,34 @@ const ORE_TABLE = [   // [crystal id, base weight]
   ["clear_quartz", 30], ["amethyst", 24], ["rose_quartz", 20],
   ["citrine", 12], ["black_tourmaline", 9], ["moonstone", 5],
 ];
+
+/* ---------- Mine creatures (no combat — purely defensive) ----------
+   While mining, a creature may appear. You never fight: you Soothe, Frost, or
+   Ward to settle it (then keep mining), or Back away (safe, but no ore). Each
+   creature has a preferred response; the right one also leaves a small gift.
+   `drop:"stone"` means the calmed creature shows you a bit of ore. */
+const APPROACHES = [
+  { id: "soothe",  label: "Soothe — hum a calming tune" },
+  { id: "frost",   label: "Frost — chill the air to slow them" },
+  { id: "ward",    label: "Ward — raise a protective shield" },
+  { id: "retreat", label: "Back away (no ore)" },
+];
+const CREATURES = {
+  cave_spider: { name: "Cave Spider", tier: "mundane", color: [120, 105, 90], calmWith: "ward", drop: "spider_silk",
+    appear: "A cave spider drops down on a silken thread!",
+    best: "You raise a shield; it loses interest and leaves a strand of silk.",
+    ok:   "You shoo it off; it scuttles back into the dark." },
+  rat: { name: "Cave Rat", tier: "mundane", color: [130, 120, 108], calmWith: "soothe", drop: "stone",
+    appear: "A rat skitters out, whiskers twitching.",
+    best: "You hum softly; it calms and leads you to a glint of ore.",
+    ok:   "It startles and darts away." },
+  wasps: { name: "Wasp Swarm", tier: "mundane", color: [214, 192, 74], calmWith: "frost", drop: "beeswax",
+    appear: "A wasp swarm lifts off, buzzing crossly!",
+    best: "You chill the air; they slow, settle, and leave a comb of wax.",
+    ok:   "You wave them off and they drift away." },
+};
+const MINE_CREATURES = ["cave_spider", "rat", "wasps"]; // who roams the surface mine
+const ENCOUNTER_CHANCE = 0.35;
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -1052,13 +1083,14 @@ function newGame() {
   nightSummary = false;  // nightly recap (sleep)
   shopOpen = false;      // merchant shop overlay
   plantMenu = null;      // { slot } — choose a seed to plant
+  encounter = null;      // { slot, creature } — mine creature encounter
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
   save();                // persist the fresh game
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, resetArmed = false;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, resetArmed = false;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Save / load (localStorage) ---------- */
@@ -1082,7 +1114,7 @@ function bootGame() {
   player = { px: 0, py: 0, gx: 5, gy: 9, dir: "down" };
   path = []; pendingAction = null; pendingDoor = null;
   dialogue = null; toastMsg = null; brewUI = null; journalOpen = false; bosPage = 0;
-  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null;
+  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null; encounter = null;
   syncGreenhousePots();
   const p = data.p || { gx: 5, gy: 9, dir: "down" };
   state.roomId = state.roomId || "dorm";
@@ -1387,6 +1419,17 @@ function actMine(o) {
   refreshNode(slot);
   const n = state.oreNodes[slot];
   if (n.ore <= 0) { toast("This seam is spent — back in " + Math.max(0, n.readyDay - state.dayCount) + "d."); return; }
+  // a creature may interrupt; resolve it before the ore is won
+  if (Math.random() < ENCOUNTER_CHANCE) {
+    encounter = { slot, creature: MINE_CREATURES[Math.floor(Math.random() * MINE_CREATURES.length)] };
+    return;
+  }
+  doMineYield(slot);
+}
+// Win the ore from a node: consume an ore, give a stone, raise Mining.
+function doMineYield(slot) {
+  const n = state.oreNodes[slot];
+  if (!n || n.ore <= 0) return;
   n.ore -= 1;
   if (n.ore <= 0) n.readyDay = state.dayCount + ORE_REGROW;
   const id = mineDrop();
@@ -1394,6 +1437,22 @@ function actMine(o) {
   state.skills.mining = (state.skills.mining || 0) + 1;
   state.todayLog.push("Mined " + ITEMS[id].name);
   toast("Struck " + ITEMS[id].name + "!");
+  save();
+}
+// Resolve a creature encounter with a chosen defensive approach.
+function resolveEncounter(approachId) {
+  const e = encounter, c = CREATURES[e.creature];
+  encounter = null;
+  if (approachId === "retreat") { toast("You back away and leave the seam be."); return; }
+  const best = approachId === c.calmWith;
+  if (best) {
+    if (c.drop === "stone") { const s = mineDrop(); state.inv[s] = (state.inv[s] || 0) + 1; }
+    else if (c.drop) { state.inv[c.drop] = (state.inv[c.drop] || 0) + 1; }
+    toast(c.best);
+  } else {
+    toast(c.ok);
+  }
+  doMineYield(e.slot);   // settled — you carry on mining
 }
 
 // Open the Book of Shadows (overview + a page per studied herb).
@@ -1635,6 +1694,7 @@ onMousePress(() => {
   if (nightSummary)  { advanceDay(); return; }         // sleep recap -> next day
   if (shopOpen)   { handleShopTap(m); return; }        // merchant shop owns taps
   if (plantMenu)  { handlePlantTap(m); return; }       // seed chooser owns taps
+  if (encounter)  { handleEncounterTap(m); return; }   // mine creature owns taps
   if (journalOpen) { handleBosTap(m); return; }        // Book of Shadows owns taps
   if (dialogue) {                                      // tap advances dialogue
     dialogue.idx += 1;
@@ -1668,7 +1728,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || path.length === 0) return;
+  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || encounter || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
@@ -1898,6 +1958,7 @@ onDraw(() => {
   if (journalOpen)    drawJournal();
   if (shopOpen)       drawShop();
   if (plantMenu)      drawPlantMenu();
+  if (encounter)      drawEncounter();
   if (dialogue)       drawDialogue();
   else if (toastMsg && !brewUI && !journalOpen && !shopOpen && !plantMenu) drawToast();
   if (nightSummary)   drawNight();
@@ -2141,6 +2202,32 @@ function handlePlantTap(m) {
     else plantSeed(plantMenu.slot, b.id);
     return;
   }
+}
+
+/* ---------- Mine creature encounter (defensive choices, no combat) ---------- */
+function encounterRows() {
+  const rows = [], x = 28, w = CANVAS_W - 56, H = 30; let y = 250;
+  for (const a of APPROACHES) { rows.push({ x, y, w, h: H, id: a.id, label: a.label }); y += H + 6; }
+  return rows;
+}
+function drawEncounter() {
+  const c = CREATURES[encounter.creature];
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.88 });
+  // creature portrait (placeholder block) + name + flavour
+  drawRect({ pos: vec2(CANVAS_W / 2, 130), width: 84, height: 84, anchor: "center", color: col(c.color), radius: 8,
+             outline: { color: rgb(20, 16, 26), width: 2 } });
+  drawText({ text: c.name, pos: vec2(CANVAS_W / 2, 184), size: 16, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: c.appear, pos: vec2(CANVAS_W / 2, 210), size: 12, color: rgb(225, 220, 240), anchor: "center", width: CANVAS_W - 60 });
+  drawText({ text: "How do you defend yourself? (no fighting)", pos: vec2(CANVAS_W / 2, 234), size: 10, color: rgb(170, 170, 190), anchor: "center" });
+  for (const b of encounterRows()) {
+    const retreat = b.id === "retreat";
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(46, 40, 58), radius: 6,
+               outline: { color: retreat ? rgb(150, 130, 200) : rgb(120, 180, 160), width: 1 } });
+    drawText({ text: b.label, pos: vec2(b.x + 12, b.y + b.h / 2), size: 12, color: rgb(225, 225, 240), anchor: "left" });
+  }
+}
+function handleEncounterTap(m) {
+  for (const b of encounterRows()) { if (pointIn(m, b)) { resolveEncounter(b.id); return; } }
 }
 
 /* ---------- Field journal: a parchment page of studies + takeaways ---------- */
