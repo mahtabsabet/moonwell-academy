@@ -306,6 +306,7 @@ const ITEMS = {
   pendulum:    { name: "Pendulum",    kind: "tool",  color: [150, 150, 175], cost: 18, sell: 8, lore: "A pendulum — dowse for yes-or-no answers." },
   tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
   wand:        { name: "Wand",        kind: "tool",  color: [150, 110, 70],  cost: 30, sell: 14, lore: "A wand of hazel — directs and focuses your will." },
+  flute:       { name: "Flute",       kind: "tool",  color: [200, 170, 110], cost: 20, sell: 9,  lore: "A simple flute — like the piper of old, its tune charms rats and calms restless beasts." },
   pickaxe:     { name: "Pickaxe",     kind: "tool",  color: [150, 140, 150], cost: 25, sell: 10, lore: "An iron pickaxe — for working ore in the mines." },
   // creature materials (calmed mine-dwellers leave these behind)
   spider_silk: { name: "Spider Silk", kind: "material", color: [212, 212, 222], sell: 8, lore: "Fine cave-spider silk — for weaving charms and bindings." },
@@ -325,7 +326,7 @@ const SHOPS = {
   general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool", "material"] },
   gem:     { name: "Gem Shop",       buy: ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"], sellKinds: ["stone"] },
   seed:    { name: "Seed & Garden",  seeds: true, buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
-  tools:   { name: "Magical Tools",  buy: ["pickaxe", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
+  tools:   { name: "Magical Tools",  buy: ["pickaxe", "flute", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
   fruit:   { name: "Fruit Stall",    buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
 };
 const buyCost = (id) => ITEMS[id].cost != null ? ITEMS[id].cost : (ITEMS[id].sell != null ? ITEMS[id].sell * 2 : 10);
@@ -351,12 +352,15 @@ const ORE_TABLE = [   // [crystal id, base weight]
 // (and consume one). No "attack" exists.
 const APPROACHES = [
   { id: "soothe",  label: "Soothe — a calm, low hum" },
+  { id: "flute",   label: "Play a flute", needsItem: "flute" },           // kept, not consumed
   { id: "frost",   label: "Frost — chill the air to slow them" },
   { id: "ward",    label: "Ward — raise a protective shield" },
-  { id: "offer",   label: "Offer food (give a fruit)", needs: "fruit" },
-  { id: "light",   label: "Light a candle", needs: "candle" },
+  { id: "offer",   label: "Offer food (give a fruit)", needsKind: "fruit" }, // consumes a fruit
+  { id: "light",   label: "Light a candle", needsItem: "candle" },           // consumes a candle
   { id: "retreat", label: "Back away (no ore)" },
 ];
+const approachAvailable = (a) => a.needsItem ? (state.inv[a.needsItem] || 0) > 0
+  : (a.needsKind ? !!firstOfKind(a.needsKind) : true);
 // Bestiary, taught one at a time in Magical Creatures class. `calmWith` is the
 // response that settles it (and leaves a gift); studying reveals it in encounters.
 const CREATURES = {
@@ -365,11 +369,11 @@ const CREATURES = {
     best: "You raise a shield; it loses interest and leaves a strand of silk.", ok: "You shoo it back into the dark.",
     lore: "A big but timid cave spider. Stand firm behind a ward and it yields silk.",
     lesson: [{ s: "Keeper Fenn", t: "Cave spiders are shy despite their size — ward yourself and they leave you (and a little silk) be." }] },
-  rat: { name: "Cave Rat", tier: "mundane", color: [130, 120, 108], calmWith: "soothe", drop: "stone",
-    appear: "A rat skitters out, whiskers twitching.",
-    best: "You hum softly; it calms and leads you to a glint of ore.", ok: "It startles and darts away.",
-    lore: "Nervous, not malicious. A calm hum settles it — and it'll show you ore.",
-    lesson: [{ s: "Keeper Fenn", t: "Cave rats are nervy, not nasty. A low, calm hum and they'll trust you to a glint of ore." }] },
+  rat: { name: "Cave Rat", tier: "mundane", color: [130, 120, 108], calmWith: "flute", drop: "stone",
+    appear: "Rats skitter out, whiskers twitching.",
+    best: "You play a tune; like the piper of old, they fall in line and lead you to ore.", ok: "They startle and dart away.",
+    lore: "Nervous, not malicious. A flute charms them — as the old piper charmed the rats — and they'll show you ore.",
+    lesson: [{ s: "Keeper Fenn", t: "Cave rats won't be reasoned with — but a flute charms them, just as the piper of old led the rats away. Never go down without one." }] },
   wasps: { name: "Wasp Swarm", tier: "mundane", color: [214, 192, 74], calmWith: "frost", drop: "beeswax",
     appear: "A wasp swarm lifts off, buzzing crossly!",
     best: "You chill the air; they slow, settle, and leave a comb of wax.", ok: "You wave them off and they drift away.",
@@ -410,6 +414,22 @@ const CREATURES_BY_DEPTH = {
   3: ["kobold", "cave_sprite", "shadow_moths", "will_o_wisp"],
 };
 const ENCOUNTER_CHANCE = 0.35;  // +0.1 per level deeper
+const MINE_REQUIRED = 3;        // creatures to study before the mines open
+// Door gates: return true to allow, or show a message and return false.
+function passGate(id) {
+  if (id === "mine") {
+    const studied = Object.keys(state.creaturesKnown || {}).length;
+    if (studied < MINE_REQUIRED) {
+      startDialogue([{ s: "Keeper Fenn", t: "Hold on — study at least " + MINE_REQUIRED + " magical creatures before you go down there. Come find me on a Tuesday." }]);
+      return false;
+    }
+    if ((state.inv.flute || 0) <= 0) {
+      startDialogue([{ s: "Keeper Fenn", t: "And don't go down without a flute — the rats won't part for you otherwise. Buy one at Magical Tools." }]);
+      return false;
+    }
+  }
+  return true;
+}
 
 // Order Prof. Sage teaches the Year-One plants. Each Herbology lesson teaches
 // the next one, which adds its Book of Shadows page.
@@ -896,7 +916,7 @@ const ROOMS = {
     doors: [
       { gx: 11, gy: 6, to: "courtyard", atGx: 1,  atGy: 5,  label: "Courtyard >" },
       { gx: 5,  gy: 0, to: "market",    atGx: 5,  atGy: 10, label: "Market ^" },
-      { gx: 0,  gy: 6, to: "mine",      atGx: 10, atGy: 6,  label: "Mine <" },
+      { gx: 0,  gy: 6, to: "mine",      atGx: 10, atGy: 6,  label: "Mine <", gate: "mine" },
     ],
     inters: [
       { gx: 6, gy: 6, kind: "shop", name: "Merchant", color: [230, 170, 90], action: "shop", shop: "general" },
@@ -1326,6 +1346,7 @@ function onArrive() {
   }
   if (pendingDoor) {
     const d = pendingDoor; pendingDoor = null;
+    if (d.gate && !passGate(d.gate)) return;   // blocked — passGate shows why
     const src = state.roomId;
     loadRoom(d.to, d.atGx, d.atGy);
     // face into the new room (away from the door we just came through)
@@ -1554,7 +1575,7 @@ function resolveEncounter(approachId) {
   const e = encounter, c = CREATURES[e.creature];
   encounter = null;
   if (approachId === "retreat") { toast("You back away and leave the seam be."); return; }
-  // item-gated responses consume the item
+  // food/candle are consumed; the flute is an instrument you keep
   if (approachId === "offer") { const f = firstOfKind("fruit"); if (f) state.inv[f] -= 1; }
   if (approachId === "light") { if ((state.inv.candle || 0) > 0) state.inv.candle -= 1; }
   const best = approachId === c.calmWith;
@@ -2322,7 +2343,7 @@ function handlePlantTap(m) {
 function encounterRows() {
   const rows = [], x = 28, w = CANVAS_W - 56, H = 28; let y = 248;
   for (const a of APPROACHES) {
-    if (a.needs && !firstOfKind(a.needs)) continue;   // item-gated: only if you carry it
+    if (!approachAvailable(a)) continue;   // item-gated: only if you carry it
     rows.push({ x, y, w, h: H, id: a.id, label: a.label }); y += H + 5;
   }
   return rows;

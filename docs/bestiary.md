@@ -5,13 +5,17 @@
 > settle it in the mines. **There is no combat** — you Soothe, Frost, Ward, Offer
 > food, Light a candle, or Back away. The right response also leaves a small gift.
 > The spirits are grounded in real mining folklore (sources below).
+>
+> **Entry gate:** the mines stay shut until you've studied at least **3** creatures
+> *and* own a **flute** (the rats won't part otherwise) — Keeper Fenn turns you back
+> at the entrance until then.
 
 ## Mundane (surface mine — depth 1)
 
 | Creature | Settle by | Leaves | Notes |
 |---|---|---|---|
 | **Cave Spider** | Ward | Spider Silk | big but timid |
-| **Cave Rat** | Soothe (hum) | shows you ore | nervous, not nasty |
+| **Cave Rat** | **Play a flute** | shows you ore | charmed by a tune, like the Pied Piper's rats |
 | **Wasp Swarm** | Frost | Beeswax | all heat and motion |
 
 ## Spirits (deeper — depths 2–3)
