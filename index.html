@@ -304,15 +304,42 @@ const ITEMS = {
   pomegranate: { name: "Pomegranate", kind: "fruit", color: [170, 50, 60],  cost: 8,  sell: 4, restore: { energy: 22 }, lore: "Pomegranate — hearty energy; prosperity, fertility, and underworld mysteries." },
   health_potion: { name: "Health Draught", kind: "remedy", color: [220, 80, 90], cost: 22, sell: 10, restore: { health: 45 }, lore: "A red restorative — drink to mend your health." },
   energy_potion: { name: "Energy Tonic",   kind: "remedy", color: [90, 170, 220], cost: 18, sell: 8,  restore: { energy: 40 }, lore: "A bright tonic — drink to restore your energy." },
-  // furniture: bought at Furnishings, placed in your dorm (Decorate). `sprite` reuses decor art.
-  deco_rug:       { name: "Woven Rug",     kind: "furniture", sprite: "rug",          flat: true, cost: 35, color: [150, 120, 165] },
-  deco_table:     { name: "Table",         kind: "furniture", sprite: "desk",         cost: 45, color: [140, 110, 80] },
-  deco_bookshelf: { name: "Bookshelf",     kind: "furniture", sprite: "bookshelf",    cost: 55, color: [120, 90, 60] },
-  deco_plant:     { name: "Potted Plant",  kind: "furniture", sprite: "pots",         cost: 30, color: [120, 160, 90] },
-  deco_lantern:   { name: "Lantern",       kind: "furniture", sprite: "lantern",      cost: 25, color: [230, 200, 120] },
-  deco_barrel:    { name: "Barrel",        kind: "furniture", sprite: "barrel",       cost: 18, color: [150, 110, 70] },
-  deco_orb:       { name: "Crystal Ball",  kind: "furniture", sprite: "crystal_ball", cost: 65, color: [160, 140, 210] },
-  deco_telescope: { name: "Telescope",     kind: "furniture", sprite: "telescope",    cost: 80, color: [150, 160, 200] },
+  // ---- Furniture: bought at Furnishings, placed in your dorm (Decorate). ----
+  // `sprite` reuses real decor art where we have it; keys we haven't drawn yet
+  // render as a tidy placeholder (a coloured prop) until a PNG is dropped in.
+  // `flat` lies on the floor; `wall` hangs on a wall tile. The altar tools &
+  // wall charms are grounded in real witchcraft (see docs/altar-and-decor.md).
+  // -- Homely furnishings --
+  deco_rug:       { name: "Woven Rug",     kind: "furniture", sprite: "rug",          flat: true, cost: 35, color: [150, 120, 165], lore: "A soft rug to warm the floorboards." },
+  deco_table:     { name: "Table",         kind: "furniture", sprite: "desk",         cost: 45, color: [140, 110, 80],  lore: "A sturdy table for books and brewing." },
+  deco_bookshelf: { name: "Bookshelf",     kind: "furniture", sprite: "bookshelf",    cost: 55, color: [120, 90, 60],   lore: "Shelves for your growing library." },
+  deco_plant:     { name: "Potted Plant",  kind: "furniture", sprite: "pots",         cost: 30, color: [120, 160, 90],  lore: "A little green company for the room." },
+  deco_lantern:   { name: "Lantern",       kind: "furniture", sprite: "lantern",      cost: 25, color: [230, 200, 120], lore: "Warm light for cosy evenings." },
+  deco_barrel:    { name: "Barrel",        kind: "furniture", sprite: "barrel",       cost: 18, color: [150, 110, 70],  lore: "Rustic storage for odds and ends." },
+  deco_orb:       { name: "Crystal Ball",  kind: "furniture", sprite: "crystal_ball", cost: 65, color: [160, 140, 210], lore: "A scrying globe for quiet gazing." },
+  deco_telescope: { name: "Telescope",     kind: "furniture", sprite: "telescope",    cost: 80, color: [150, 160, 200], lore: "Bring the night sky indoors." },
+  // -- Altar tools (real Wiccan / folk craft) --
+  deco_altarcloth:{ name: "Altar Cloth",   kind: "furniture", sprite: "altar_cloth",    flat: true, cost: 22, color: [120, 90, 150],  lore: "Cloth that marks out your working surface." },
+  deco_pentacle:  { name: "Pentacle",      kind: "furniture", sprite: "pentacle",       flat: true, cost: 28, color: [170, 150, 90],  lore: "An Earth-element disc for consecrating tools and offering protection." },
+  deco_chalice:   { name: "Chalice",       kind: "furniture", sprite: "chalice",        cost: 26, color: [180, 170, 110], lore: "The ritual cup — element of Water, for blessings and offerings." },
+  deco_athame:    { name: "Athame",        kind: "furniture", sprite: "athame",         cost: 30, color: [150, 160, 175], lore: "A ritual blade for directing energy (Fire in Gardnerian craft, Air in others)." },
+  deco_wand:      { name: "Wand",          kind: "furniture", sprite: "wand",           cost: 24, color: [140, 110, 80],  lore: "A wand to direct will and energy — often Fire (or Air)." },
+  deco_censer:    { name: "Incense Burner",kind: "furniture", sprite: "censer",         cost: 20, color: [150, 140, 160], lore: "A censer — element of Air; its smoke cleanses the space and welcomes spirits." },
+  deco_besom:     { name: "Besom",         kind: "furniture", sprite: "besom",          cost: 24, color: [160, 140, 90],  lore: "The witch's broom, swept above the floor to clear out stale energy before a rite." },
+  deco_bell:      { name: "Ritual Bell",   kind: "furniture", sprite: "bell",           cost: 18, color: [200, 180, 110], lore: "Rung to clear stagnant energy and mark the turns of a rite." },
+  deco_cauldron:  { name: "Cauldron",      kind: "furniture", sprite: "cauldron",       cost: 40, color: [70, 70, 80],    lore: "A small cauldron — vessel of transformation." },
+  deco_mirror:    { name: "Scrying Mirror",kind: "furniture", sprite: "scrying_mirror", cost: 45, color: [60, 60, 80],    lore: "A dark mirror for scrying, after John Dee's obsidian glass." },
+  deco_salt:      { name: "Salt Dish",     kind: "furniture", sprite: "salt_dish",      cost: 12, color: [220, 220, 230], lore: "A dish of salt for cleansing and casting protective circles." },
+  deco_offering:  { name: "Offering Bowl", kind: "furniture", sprite: "offering_bowl",  cost: 14, color: [170, 140, 110], lore: "A bowl to leave food or flowers for the spirits you keep." },
+  // -- Wall hangings & charms --
+  deco_moonphases:{ name: "Moon Phase Hanging", kind: "furniture", sprite: "moon_phases",     wall: true, cost: 30, color: [200, 205, 230], lore: "The lunar cycle, charted on your wall." },
+  deco_tapestry:  { name: "Celestial Tapestry", kind: "furniture", sprite: "tapestry",        wall: true, cost: 50, color: [110, 90, 160],  lore: "Sun, moon and stars woven into cloth." },
+  deco_herbs:     { name: "Drying Herbs",       kind: "furniture", sprite: "herb_bundle",     wall: true, cost: 16, color: [120, 150, 90],  lore: "Bundles of garden herbs hung to dry for cooking, brewing, and smoke-cleansing." },
+  deco_wreath:    { name: "Protective Wreath",  kind: "furniture", sprite: "wreath",          wall: true, cost: 22, color: [90, 150, 100],  lore: "A woven ring of herbs and greenery to guard the threshold." },
+  deco_horseshoe: { name: "Horseshoe",          kind: "furniture", sprite: "horseshoe",       wall: true, cost: 15, color: [180, 180, 190], lore: "Hung ends-up to hold the luck in (some say ends-down to pour it out)." },
+  deco_ladder:    { name: "Witch's Ladder",     kind: "furniture", sprite: "witch_ladder",    wall: true, cost: 28, color: [150, 130, 100], lore: "A knotted cord strung with feathers — woven intentions, after the Wellington charm of 1878." },
+  deco_botanical: { name: "Pressed Botanical",  kind: "furniture", sprite: "botanical_frame", wall: true, cost: 20, color: [150, 170, 120], lore: "Pressed flowers and herbs framed under glass." },
+  deco_starchart: { name: "Star Chart",         kind: "furniture", sprite: "star_chart",      wall: true, cost: 24, color: [120, 130, 180], lore: "A framed map of the night sky." },
   candle:      { name: "Candle",      kind: "tool",  color: [240, 230, 180], cost: 5,  sell: 2, lore: "A spell candle — burn it dressed to your intent." },
   pendulum:    { name: "Pendulum",    kind: "tool",  color: [150, 150, 175], cost: 18, sell: 8, lore: "A pendulum — dowse for yes-or-no answers." },
   tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
@@ -329,6 +356,14 @@ const ITEMS = {
 const CRYSTAL_ORDER = ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"];
 const STONE_SELL = 12;  // fallback stone price if an item lacks its own
 
+// Furniture catalogue order (homely → altar tools → wall hangings), used by
+// the Furnishings shop and the dorm Decorate palette.
+const DECOR_ORDER = [
+  "deco_rug", "deco_table", "deco_bookshelf", "deco_plant", "deco_lantern", "deco_barrel", "deco_orb", "deco_telescope",
+  "deco_altarcloth", "deco_pentacle", "deco_chalice", "deco_athame", "deco_wand", "deco_censer", "deco_besom", "deco_bell", "deco_cauldron", "deco_mirror", "deco_salt", "deco_offering",
+  "deco_moonphases", "deco_tapestry", "deco_herbs", "deco_wreath", "deco_horseshoe", "deco_ladder", "deco_botanical", "deco_starchart",
+];
+
 /* ---------- Village shops ----------
    Each shop's keeper opens a browse/buy panel. `seeds:true` lists seed packets
    for herbs you've studied; `buy` lists fixed goods (price from item.cost, or
@@ -340,7 +375,7 @@ const SHOPS = {
   tools:   { name: "Magical Tools",  buy: ["pickaxe", "flute", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
   fruit:   { name: "Fruit Stall",    buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
   infirmary: { name: "Infirmary",    buy: ["health_potion", "energy_potion"], sellKinds: ["remedy"] },
-  furnishings: { name: "Furnishings", buy: ["deco_rug", "deco_table", "deco_bookshelf", "deco_plant", "deco_lantern", "deco_barrel", "deco_orb", "deco_telescope"], sellKinds: [] },
+  furnishings: { name: "Furnishings", buy: DECOR_ORDER, sellKinds: [] },
 };
 const buyCost = (id) => ITEMS[id].cost != null ? ITEMS[id].cost : (ITEMS[id].sell != null ? ITEMS[id].sell * 2 : 10);
 
@@ -1268,7 +1303,7 @@ function newGame() {
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, decorating, resetArmed = false;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, decorating, shopPage = 0, resetArmed = false;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Save / load (localStorage) ---------- */
@@ -1447,9 +1482,10 @@ function dispatchAction(o) {
   }
 }
 
-// Open the dorm decorating mode: pick owned furniture, tap a floor tile to
-// place it, tap a placed piece to pick it back up. Cosmetic only.
-function actDecorate() { decorating = { sel: null }; }
+// Open the dorm decorating mode: pick owned furniture from the palette, tap a
+// tile to place it; tap a placed piece to select it, then rotate / remove /
+// move it. Cosmetic only — placed pieces never block walking.
+function actDecorate() { decorating = { sel: null, pick: null, page: 0 }; }
 
 // Chart the moon at the observatory: read tonight's phase and its meaning.
 function actObserve() {
@@ -1745,7 +1781,7 @@ function plantSeed(slot, id) {
 }
 
 /* ---------- Merchant shop (buy seeds, sell goods) ---------- */
-function actShop(o) { shopOpen = (o && o.shop) || "general"; }
+function actShop(o) { shopOpen = (o && o.shop) || "general"; shopPage = 0; }
 function buySeed(id) {
   if (state.coin < SEED_COST) { toast("Not enough coin."); return; }
   state.coin -= SEED_COST;
@@ -2065,15 +2101,7 @@ onDraw(() => {
   }
 
   // --- placed dorm furniture (cosmetic; only in the dorm) ---
-  if (r === ROOMS.dorm) for (const o of (state.dormDecor || [])) {
-    if (!ready(o.sprite)) continue;
-    const s = PROP_DRAW;
-    if (o.flat) drawSprite({ sprite: o.sprite, anchor: "center", pos: vec2(cx(o.gx), cy(o.gy)), width: s, height: s });
-    else        drawSprite({ sprite: o.sprite, anchor: "bot", pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: s, height: s });
-    // in decorating mode, outline each placed piece so it reads as removable
-    if (decorating) drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
-      color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 200, 120), width: 2 }, radius: 4 });
-  }
+  if (r === ROOMS.dorm) (state.dormDecor || []).forEach(drawPlacedDecor);
 
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
   for (const o of r.inters) {
@@ -2377,10 +2405,20 @@ function shopRows() {
     if (!any) push({ type: "note", label: "(study herbs to unlock their seeds)" });
     y += 6;
   }
-  // fixed goods
+  // fixed goods (paginated when the list is long, e.g. Furnishings)
   if (shop.buy && shop.buy.length) {
-    push({ type: "hdr", label: "Buy" });
-    for (const id of shop.buy) push({ type: "buy", id, label: ITEMS[id].name, sub: "have " + (state.inv[id] || 0), price: buyCost(id) });
+    const per = 14, pages = Math.ceil(shop.buy.length / per);
+    const pg = shopPage = Math.max(0, Math.min(shopPage, pages - 1));
+    push({ type: "hdr", label: "Buy" + (pages > 1 ? "  (page " + (pg + 1) + "/" + pages + ")" : "") });
+    for (const id of shop.buy.slice(pg * per, pg * per + per)) {
+      const owned = ITEMS[id].kind === "furniture" ? (state.furniture[id] || 0) : (state.inv[id] || 0);
+      push({ type: "buy", id, label: ITEMS[id].name, sub: "own " + owned, price: buyCost(id) });
+    }
+    if (pages > 1) {
+      rows.push({ type: "prev", x, y, w: w / 2 - 4, h: H });
+      rows.push({ type: "next", x: x + w / 2 + 4, y, w: w / 2 - 4, h: H });
+      y += H;
+    }
     y += 6;
   }
   // selling
@@ -2408,10 +2446,13 @@ function drawShop() {
       drawText({ text: b.label, pos: vec2(b.x + 6, b.y + 4), size: 10, color: rgb(150, 150, 170) });
     } else {
       const isBuy = b.type === "buy" || b.type === "seed";
-      const accent = b.type === "close" ? rgb(150, 130, 200) : (isBuy ? rgb(120, 180, 130) : rgb(220, 170, 110));
+      const isNav = b.type === "prev" || b.type === "next";
+      const accent = b.type === "close" ? rgb(150, 130, 200) : (isNav ? rgb(150, 150, 200) : (isBuy ? rgb(120, 180, 130) : rgb(220, 170, 110)));
       drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h - 3, color: rgb(46, 40, 58), radius: 5, outline: { color: accent, width: 1 } });
       if (b.type === "close") {
         drawText({ text: "Close", pos: vec2(b.x + b.w / 2, b.y + 5), size: 12, color: rgb(220, 220, 235), anchor: "center" });
+      } else if (isNav) {
+        drawText({ text: b.type === "prev" ? "< Prev" : "Next >", pos: vec2(b.x + b.w / 2, b.y + 5), size: 12, color: rgb(220, 220, 235), anchor: "center" });
       } else {
         drawText({ text: b.label, pos: vec2(b.x + 8, b.y + 5), size: 11, color: rgb(225, 225, 240) });
         if (b.sub) drawText({ text: b.sub, pos: vec2(b.x + b.w - 70, b.y + 5), size: 9, color: rgb(160, 160, 180), anchor: "right" });
@@ -2424,6 +2465,8 @@ function handleShopTap(m) {
   for (const b of shopRows()) {
     if (!pointIn(m, b)) continue;
     if (b.type === "close") shopOpen = false;
+    else if (b.type === "prev") shopPage = Math.max(0, shopPage - 1);
+    else if (b.type === "next") shopPage += 1;
     else if (b.type === "seed") buySeed(b.id);
     else if (b.type === "buy") buyItem(b.id);
     else if (b.type === "sell") sellItem(b.id);
@@ -2432,84 +2475,164 @@ function handleShopTap(m) {
 }
 
 /* ---------- Dorm decorating mode ----------
-   A bottom palette of owned furniture + a Done button. Tap a piece to select
-   it, tap a floor tile to place it, tap a placed piece to pick it back up.
-   Placed furniture is cosmetic (state.dormDecor) — it never blocks walking.   */
+   Bottom palette of owned furniture (paged). Tap a chip to select a piece,
+   then tap a tile to place it. Tap a placed piece to select it, then Rotate /
+   Remove it, or tap another tile to move it. Floor pieces go on open floor;
+   wall hangings go on a wall tile. Cosmetic — nothing blocks walking.        */
 function decorOwned() {
-  return Object.keys(state.furniture || {}).filter((id) => (state.furniture[id] || 0) > 0 && ITEMS[id]);
+  return DECOR_ORDER.filter((id) => (state.furniture[id] || 0) > 0);
 }
+const DECOR_PER = 7;
 function decorRows() {
-  const rows = [];
-  // Done button lives in the top banner
-  rows.push({ type: "done", x: CANVAS_W - 56, y: ORIGIN_Y + 3, w: 50, h: 18 });
-  // furniture chips along the bottom band (below the play grid)
-  const owned = decorOwned();
-  const chipW = 40, gap = 6, x0 = 8; let x = x0, y = CANVAS_H - 46;
-  for (const id of owned) {
-    rows.push({ type: "chip", id, x, y, w: chipW, h: 40 });
-    x += chipW + gap;
+  const rows = [], band = CANVAS_H - 64;
+  // control row (right-aligned buttons): Done always; Rotate/Remove when a
+  // placed piece is selected
+  rows.push({ type: "done", x: CANVAS_W - 46, y: band + 3, w: 42, h: 15 });
+  if (decorating.pick != null) {
+    rows.push({ type: "rotate", x: CANVAS_W - 96, y: band + 3, w: 46, h: 15 });
+    rows.push({ type: "remove", x: CANVAS_W - 150, y: band + 3, w: 50, h: 15 });
+  }
+  // palette: page arrows + owned chips for the current page
+  const owned = decorOwned(), pages = Math.max(1, Math.ceil(owned.length / DECOR_PER));
+  decorating.page = Math.max(0, Math.min(decorating.page || 0, pages - 1));
+  if (pages > 1) {
+    rows.push({ type: "pprev", x: 4, y: band + 22, w: 18, h: 38 });
+    rows.push({ type: "pnext", x: CANVAS_W - 22, y: band + 22, w: 18, h: 38 });
+  }
+  let x = pages > 1 ? 26 : 8;
+  for (const id of owned.slice(decorating.page * DECOR_PER, decorating.page * DECOR_PER + DECOR_PER)) {
+    rows.push({ type: "chip", id, x, y: band + 22, w: 40, h: 38 });
+    x += 46;
   }
   return rows;
 }
 function drawDecorate() {
-  // top banner: instructions + Done
-  drawRect({ pos: vec2(0, ORIGIN_Y), width: CANVAS_W, height: 24, color: rgb(40, 30, 52), opacity: 0.94 });
-  const tip = decorating.sel ? "placing " + ITEMS[decorating.sel].name + " — tap a floor tile"
-                             : "tap a piece below, then a floor tile";
-  drawText({ text: "Decorate · " + tip, pos: vec2(8, ORIGIN_Y + 7), size: 9, color: rgb(228, 218, 248), width: CANVAS_W - 64 });
-  // bottom palette band (over the hint strip; below the grid)
-  drawRect({ pos: vec2(0, CANVAS_H - 64), width: CANVAS_W, height: 64, color: rgb(30, 24, 44) });
+  const band = CANVAS_H - 64;
+  // lore tooltip for the focused piece (floats just above the palette band)
+  const focus = decorating.pick != null ? (state.dormDecor[decorating.pick] || {}).id : decorating.sel;
+  if (focus && ITEMS[focus] && ITEMS[focus].lore) {
+    drawRect({ pos: vec2(0, band - 30), width: CANVAS_W, height: 30, color: rgb(20, 16, 30), opacity: 0.92 });
+    drawText({ text: ITEMS[focus].name + " — " + ITEMS[focus].lore, pos: vec2(6, band - 27), size: 9,
+               color: rgb(220, 214, 240), width: CANVAS_W - 12 });
+  }
+  drawRect({ pos: vec2(0, band), width: CANVAS_W, height: 64, color: rgb(30, 24, 44) });
+  // instruction line (left of the control buttons)
+  let tip;
+  if (decorating.pick != null) {
+    const o = state.dormDecor[decorating.pick];
+    tip = "Selected " + (ITEMS[o.id] ? ITEMS[o.id].name : "piece") + " — Rotate / Remove, or tap a tile to move it.";
+  } else if (decorating.sel) {
+    tip = "Placing " + ITEMS[decorating.sel].name + " — tap " + (ITEMS[decorating.sel].wall ? "a wall" : "an open floor") + " tile.";
+  } else {
+    tip = "Tap a piece, then a tile. Tap a placed piece to edit it.";
+  }
+  drawText({ text: tip, pos: vec2(6, band + 5), size: 9, color: rgb(225, 216, 244), width: CANVAS_W - 158 });
   if (!decorOwned().length) {
     drawText({ text: "No furniture yet — buy some at the Furnishings shop (Market Street).",
-               pos: vec2(8, CANVAS_H - 40), size: 10, color: rgb(180, 170, 200), width: CANVAS_W - 16 });
+               pos: vec2(6, band + 30), size: 10, color: rgb(180, 170, 200), width: CANVAS_W - 16 });
   }
+  const labels = { done: "Done", rotate: "Rotate", remove: "Remove", pprev: "<", pnext: ">" };
   for (const b of decorRows()) {
-    if (b.type === "done") {
-      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(60, 48, 78), radius: 5,
-                 outline: { color: rgb(180, 150, 210), width: 1 } });
-      drawText({ text: "Done", pos: vec2(b.x + b.w / 2, b.y + 4), size: 11, color: rgb(232, 224, 248), anchor: "center" });
-    } else {
-      const it = ITEMS[b.id], seld = decorating.sel === b.id, ikey = it.sprite;
+    if (b.type === "chip") {
+      const it = ITEMS[b.id], seld = decorating.sel === b.id;
       drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(44, 36, 58), radius: 5,
                  outline: { color: seld ? rgb(255, 210, 130) : rgb(90, 78, 110), width: seld ? 2 : 1 } });
-      if (ready(ikey)) drawSprite({ sprite: ikey, anchor: "center", pos: vec2(b.x + b.w / 2, b.y + 16), width: 24, height: 24 });
-      else drawRect({ pos: vec2(b.x + b.w / 2, b.y + 16), width: 18, height: 18, anchor: "center", color: col(it.color), radius: 3 });
-      drawText({ text: "x" + state.furniture[b.id], pos: vec2(b.x + b.w / 2, b.y + 29), size: 9, color: rgb(225, 222, 235), anchor: "center" });
+      if (ready(it.sprite)) drawSprite({ sprite: it.sprite, anchor: "center", pos: vec2(b.x + b.w / 2, b.y + 15), width: 22, height: 22 });
+      else drawRect({ pos: vec2(b.x + b.w / 2, b.y + 15), width: 16, height: 16, anchor: "center", color: col(it.color), radius: 3 });
+      drawText({ text: "x" + state.furniture[b.id], pos: vec2(b.x + b.w / 2, b.y + 28), size: 9, color: rgb(225, 222, 235), anchor: "center" });
+    } else {
+      const accent = b.type === "remove" ? rgb(220, 150, 150) : rgb(180, 150, 210);
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(58, 48, 74), radius: 4, outline: { color: accent, width: 1 } });
+      drawText({ text: labels[b.type], pos: vec2(b.x + b.w / 2, b.y + 3), size: b.type.startsWith("p") ? 12 : 10,
+                 color: rgb(232, 224, 248), anchor: "center" });
     }
   }
 }
 function handleDecorateTap(m) {
-  // panel buttons (Done / chips) take priority
+  // panel buttons take priority over the room
   for (const b of decorRows()) {
     if (!pointIn(m, b)) continue;
     if (b.type === "done") { decorating = null; save(); }
-    else if (b.type === "chip") decorating.sel = (decorating.sel === b.id ? null : b.id);
+    else if (b.type === "pprev") decorating.page = Math.max(0, (decorating.page || 0) - 1);
+    else if (b.type === "pnext") decorating.page = (decorating.page || 0) + 1;
+    else if (b.type === "chip") { decorating.sel = (decorating.sel === b.id ? null : b.id); decorating.pick = null; }
+    else if (b.type === "rotate" && decorating.pick != null) {
+      const o = state.dormDecor[decorating.pick]; o.rot = ((o.rot || 0) + 1) % 4; save();
+    } else if (b.type === "remove" && decorating.pick != null) {
+      const o = state.dormDecor[decorating.pick];
+      state.furniture[o.id] = (state.furniture[o.id] || 0) + 1;
+      state.dormDecor.splice(decorating.pick, 1);
+      decorating.pick = null; toast("Picked up"); save();
+    }
     return;
   }
-  // taps on the grid: pick up a placed piece, or place the selected one
+  // taps on the grid (above the palette band)
   if (m.y < ORIGIN_Y || m.y >= CANVAS_H - 64) return;
   const gx = Math.floor(m.x / TILE), gy = Math.floor((m.y - ORIGIN_Y) / TILE);
   if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return;
   const r = ROOMS.dorm;
-  const idx = (state.dormDecor || []).findIndex((d) => d.gx === gx && d.gy === gy);
-  if (idx >= 0) {                                   // pick up -> back to the stash
-    const d = state.dormDecor[idx];
-    state.furniture[d.id] = (state.furniture[d.id] || 0) + 1;
-    state.dormDecor.splice(idx, 1);
-    toast(ITEMS[d.id] ? ITEMS[d.id].name + " picked up" : "Picked up");
-    save();
-    return;
+  const hit = (state.dormDecor || []).findIndex((d) => d.gx === gx && d.gy === gy);
+  // tapped another placed piece -> select it for editing
+  if (hit >= 0 && hit !== decorating.pick) { decorating.pick = hit; decorating.sel = null; return; }
+  if (hit >= 0) return;                              // tapped the selected piece's own tile
+  // empty tile: move the selected placed piece, else place a new one
+  if (decorating.pick != null) {
+    const o = state.dormDecor[decorating.pick];
+    if (!validDecorTile(r, gx, gy, ITEMS[o.id], decorating.pick)) { toast("Can't place there"); return; }
+    o.gx = gx; o.gy = gy; save(); return;
   }
   const id = decorating.sel;
   if (!id || (state.furniture[id] || 0) <= 0) return;
-  if (r.grid[gy][gx] === "#" || doorAt(r, gx, gy) || interAt(r, gx, gy) || decorAt(r, gx, gy)) {
-    toast("Can't place there"); return;
-  }
+  if (!validDecorTile(r, gx, gy, ITEMS[id], -1)) { toast("Can't place there"); return; }
   const it = ITEMS[id];
-  state.dormDecor.push({ id, sprite: it.sprite, gx, gy, flat: !!it.flat });
+  state.dormDecor.push({ id, sprite: it.sprite, gx, gy, flat: !!it.flat, wall: !!it.wall, rot: 0 });
   state.furniture[id] -= 1;
   if (state.furniture[id] <= 0) { delete state.furniture[id]; if (decorating.sel === id) decorating.sel = null; }
   save();
+}
+// Is (gx,gy) a legal home for this furniture? Wall hangings need a wall tile
+// (not a door); floor pieces need open floor (no wall/door/inter/built-in
+// decor). Either way the tile must be free of other placed pieces.
+function validDecorTile(r, gx, gy, it, selfIdx) {
+  const occ = (state.dormDecor || []).findIndex((d) => d.gx === gx && d.gy === gy);
+  if (occ >= 0 && occ !== selfIdx) return false;
+  const isWall = r.grid[gy][gx] === "#";
+  if (it && it.wall) return isWall && !doorAt(r, gx, gy);
+  if (isWall || doorAt(r, gx, gy) || interAt(r, gx, gy) || decorAt(r, gx, gy)) return false;
+  return true;
+}
+// Draw one placed dorm piece (sprite if we have art, else a tidy placeholder),
+// with rotation; in Decorate mode add a selection outline + a small label.
+function drawPlacedDecor(o, idx) {
+  const it = ITEMS[o.id] || {}, flat = it.flat, wall = it.wall, ang = (o.rot || 0) * 90;
+  const cxp = cx(o.gx), cyp = ORIGIN_Y + o.gy * TILE + TILE / 2;
+  if (ready(o.sprite)) {
+    if (flat)      drawSprite({ sprite: o.sprite, anchor: "center", pos: vec2(cxp, cy(o.gy)), width: PROP_DRAW, height: PROP_DRAW, angle: ang });
+    else if (wall) drawSprite({ sprite: o.sprite, anchor: "center", pos: vec2(cxp, cyp), width: 26, height: 26, angle: ang });
+    else           drawSprite({ sprite: o.sprite, anchor: "bot", pos: vec2(cxp, ORIGIN_Y + (o.gy + 1) * TILE), width: PROP_DRAW, height: PROP_DRAW, angle: ang });
+  } else {
+    // placeholder shapes until PixelLab art is dropped in under o.sprite
+    const odd = (o.rot || 0) % 2 === 1;
+    if (flat) {
+      drawRect({ pos: vec2(cxp, cy(o.gy)), anchor: "center", width: odd ? 16 : 30, height: odd ? 30 : 16,
+                 color: col(it.color), radius: 4, outline: { color: col(it.color, 0.6), width: 2 } });
+    } else if (wall) {
+      drawRect({ pos: vec2(cxp, cyp - 12), anchor: "center", width: 3, height: 4, color: rgb(60, 54, 50) });
+      drawRect({ pos: vec2(cxp, cyp), anchor: "center", width: 22, height: 22, color: col(it.color), radius: 3,
+                 outline: { color: rgb(40, 34, 30), width: 2 } });
+    } else {
+      drawRect({ pos: vec2(cxp, ORIGIN_Y + (o.gy + 1) * TILE - 3), anchor: "bot", width: 18, height: 26,
+                 color: col(it.color), radius: 4, outline: { color: col(it.color, 0.6), width: 2 } });
+    }
+  }
+  if (decorating) {
+    const picked = decorating.pick === idx;
+    drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+               color: rgb(0, 0, 0), opacity: 0,
+               outline: { color: picked ? rgb(255, 220, 130) : rgb(200, 190, 220), width: picked ? 2 + pulse() * 2 : 1 }, radius: 4 });
+    drawText({ text: it.name || "", pos: vec2(cxp, ORIGIN_Y + o.gy * TILE + TILE - 1), size: 7, anchor: "center",
+               width: TILE * 2.4, color: rgb(235, 228, 248) });
+  }
 }
 
 /* ---------- Plant-a-seed chooser ---------- */
