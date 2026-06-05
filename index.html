@@ -299,9 +299,11 @@ const ITEMS = {
   },
 
   // ---- Market goods (bought in the village shops; flavour + future use) ----
-  apple:       { name: "Apple",       kind: "fruit", color: [200, 70, 70],  cost: 4,  sell: 2, lore: "Crisp apple — love and abundance in kitchen witchery." },
-  lemon:       { name: "Lemon",       kind: "fruit", color: [235, 220, 90], cost: 4,  sell: 2, lore: "Lemon — for cleansing and bright clarity." },
-  pomegranate: { name: "Pomegranate", kind: "fruit", color: [170, 50, 60],  cost: 8,  sell: 4, lore: "Pomegranate — prosperity, fertility, and the underworld mysteries." },
+  apple:       { name: "Apple",       kind: "fruit", color: [200, 70, 70],  cost: 4,  sell: 2, restore: { energy: 15 }, lore: "Crisp apple — a quick bite of energy; love and abundance in kitchen witchery." },
+  lemon:       { name: "Lemon",       kind: "fruit", color: [235, 220, 90], cost: 4,  sell: 2, restore: { energy: 12 }, lore: "Lemon — a sharp little lift; for cleansing and bright clarity." },
+  pomegranate: { name: "Pomegranate", kind: "fruit", color: [170, 50, 60],  cost: 8,  sell: 4, restore: { energy: 22 }, lore: "Pomegranate — hearty energy; prosperity, fertility, and underworld mysteries." },
+  health_potion: { name: "Health Draught", kind: "remedy", color: [220, 80, 90], cost: 22, sell: 10, restore: { health: 45 }, lore: "A red restorative — drink to mend your health." },
+  energy_potion: { name: "Energy Tonic",   kind: "remedy", color: [90, 170, 220], cost: 18, sell: 8,  restore: { energy: 40 }, lore: "A bright tonic — drink to restore your energy." },
   candle:      { name: "Candle",      kind: "tool",  color: [240, 230, 180], cost: 5,  sell: 2, lore: "A spell candle — burn it dressed to your intent." },
   pendulum:    { name: "Pendulum",    kind: "tool",  color: [150, 150, 175], cost: 18, sell: 8, lore: "A pendulum — dowse for yes-or-no answers." },
   tarot_deck:  { name: "Tarot Deck",  kind: "tool",  color: [120, 90, 160],  cost: 25, sell: 12, lore: "Seventy-eight cards for divination and reflection." },
@@ -323,11 +325,12 @@ const STONE_SELL = 12;  // fallback stone price if an item lacks its own
    for herbs you've studied; `buy` lists fixed goods (price from item.cost, or
    2x its sell value); `sellKinds` are the item kinds the shop will buy from you. */
 const SHOPS = {
-  general: { name: "Trading Post",   sellKinds: ["herb", "potion", "stone", "fruit", "tool", "material"] },
+  general: { name: "Trading Post",   buy: ["health_potion", "energy_potion"], sellKinds: ["herb", "potion", "stone", "fruit", "tool", "material", "remedy"] },
   gem:     { name: "Gem Shop",       buy: ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"], sellKinds: ["stone"] },
   seed:    { name: "Seed & Garden",  seeds: true, buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
   tools:   { name: "Magical Tools",  buy: ["pickaxe", "flute", "candle", "pendulum", "tarot_deck", "wand"], sellKinds: ["tool"] },
   fruit:   { name: "Fruit Stall",    buy: ["apple", "lemon", "pomegranate"], sellKinds: ["fruit"] },
+  infirmary: { name: "Infirmary",    buy: ["health_potion", "energy_potion"], sellKinds: ["remedy"] },
 };
 const buyCost = (id) => ITEMS[id].cost != null ? ITEMS[id].cost : (ITEMS[id].sell != null ? ITEMS[id].sell * 2 : 10);
 
@@ -351,10 +354,10 @@ const ORE_TABLE = [   // [crystal id, base weight]
 // Defensive responses. `needs` approaches only appear when you carry the item
 // (and consume one). No "attack" exists.
 const APPROACHES = [
-  { id: "soothe",  label: "Soothe — a calm, low hum" },
+  { id: "soothe",  label: "Soothe — a calm, low hum", magic: true },
   { id: "flute",   label: "Play a flute", needsItem: "flute" },           // kept, not consumed
-  { id: "frost",   label: "Frost — chill the air to slow them" },
-  { id: "ward",    label: "Ward — raise a protective shield" },
+  { id: "frost",   label: "Frost — chill the air to slow them", magic: true },
+  { id: "ward",    label: "Ward — raise a protective shield", magic: true },
   { id: "offer",   label: "Offer food (give a fruit)", needsKind: "fruit" }, // consumes a fruit
   { id: "light",   label: "Light a candle", needsItem: "candle" },           // consumes a candle
   { id: "retreat", label: "Back away (no ore)" },
@@ -415,6 +418,16 @@ const CREATURES_BY_DEPTH = {
 };
 const ENCOUNTER_CHANCE = 0.35;  // +0.1 per level deeper
 const MINE_REQUIRED = 3;        // creatures to study before the mines open
+
+/* ---------- Vitals (health & energy) ----------
+   Magic costs energy; an undefended creature hit costs health. At 0 health you
+   faint and wake in the infirmary. Restore energy with food or by meditating,
+   health with a remedy; a night's sleep restores both. */
+const HP_MAX = 100, EN_MAX = 100;
+const SPELL_COST = 12;            // energy per defensive spell (soothe/frost/ward)
+const BREW_COST = 6;              // energy per brew (never blocks; floors at 0)
+const MEDITATE_GAIN = 45, MEDITATE_SECS = 4;
+const creatureBite = (c) => c.tier === "spirit" ? 18 : 12;
 // Door gates: return true to allow, or show a message and return false.
 function passGate(id) {
   if (id === "mine") {
@@ -713,6 +726,7 @@ const ROOMS = {
       { gx: 11, gy: 6,  to: "greenhouse",  atGx: 1,  atGy: 5,  label: "Greenhouse >" },
       { gx: 5,  gy: 0,  to: "academy",     atGx: 5,  atGy: 10, label: "Academy ^" },
       { gx: 9,  gy: 0,  to: "observatory", atGx: 6,  atGy: 10, label: "Observatory ^" },
+      { gx: 11, gy: 9,  to: "infirmary",   atGx: 1,  atGy: 9,  label: "Infirmary >" },
     ],
     inters: [
       { gx: 3, gy: 8, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
@@ -722,6 +736,23 @@ const ROOMS = {
       { gx: 10, gy: 1,  kind: "lantern", size: 26 },
       { gx: 2,  gy: 10, kind: "pots" },
       { gx: 10, gy: 10, kind: "barrel" },
+    ],
+  },
+
+  // ---- Infirmary: where you wake after fainting; rest and buy remedies ----
+  infirmary: {
+    name: "Infirmary",
+    floor: [72, 74, 82],
+    grid: STD_GRID,
+    doors: [ { gx: 0, gy: 9, to: "courtyard", atGx: 10, atGy: 9, label: "Courtyard <" } ],
+    inters: [
+      { gx: 3, gy: 2, kind: "shop", name: "Nurse Bramble", color: [205, 150, 160], action: "shop", shop: "infirmary" },
+      { gx: 9, gy: 9, kind: "bed",  name: "Cot", color: [150, 160, 200], action: "sleep" },
+    ],
+    decor: [
+      { gx: 9, gy: 2, kind: "pots" },
+      { gx: 1, gy: 2, kind: "lantern", size: 26 },
+      { gx: 1, gy: 6, kind: "barrel" },
     ],
   },
 
@@ -1169,6 +1200,8 @@ function freshState() {
     journal: {},          // subject id -> takeaway line (recorded on first lesson)
     coin: 0,
     friendship: 0,
+    health: HP_MAX,       // faint at 0 -> infirmary
+    energy: EN_MAX,       // magic spends it; food/meditation restore it
     dayCount: 1,          // 1-based; weekday = DAYS[(dayCount-1) % 7]
     attendedToday: {},    // subject id -> true (one lesson per class per day)
     observedToday: false, // charted the moon at the observatory tonight?
@@ -1192,13 +1225,15 @@ function newGame() {
   shopOpen = false;      // merchant shop overlay
   plantMenu = null;      // { slot } — choose a seed to plant
   encounter = null;      // { slot, creature } — mine creature encounter
+  bagOpen = false;       // bag / self-care overlay
+  meditating = null;     // { start, from } — grounding meditation
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
   save();                // persist the fresh game
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, resetArmed = false;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, resetArmed = false;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Save / load (localStorage) ---------- */
@@ -1222,7 +1257,7 @@ function bootGame() {
   player = { px: 0, py: 0, gx: 5, gy: 9, dir: "down" };
   path = []; pendingAction = null; pendingDoor = null;
   dialogue = null; toastMsg = null; brewUI = null; journalOpen = false; bosPage = 0;
-  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null; encounter = null;
+  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null; encounter = null; bagOpen = false; meditating = null;
   syncGreenhousePots();
   const p = data.p || { gx: 5, gy: 9, dir: "down" };
   state.roomId = state.roomId || "dorm";
@@ -1573,8 +1608,11 @@ function firstOfKind(kind) { return Object.keys(state.inv).find((id) => state.in
 // Resolve a creature encounter with a chosen defensive approach. Never harmful.
 function resolveEncounter(approachId) {
   const e = encounter, c = CREATURES[e.creature];
+  const a = APPROACHES.find((x) => x.id === approachId);
+  if (a && a.magic && state.energy < SPELL_COST) { toast("Too tired to cast — rest, eat, or back away."); return; }
   encounter = null;
   if (approachId === "retreat") { toast("You back away and leave the seam be."); return; }
+  if (a && a.magic) state.energy = Math.max(0, state.energy - SPELL_COST);  // magic spends energy
   // food/candle are consumed; the flute is an instrument you keep
   if (approachId === "offer") { const f = firstOfKind("fruit"); if (f) state.inv[f] -= 1; }
   if (approachId === "light") { if ((state.inv.candle || 0) > 0) state.inv.candle -= 1; }
@@ -1583,10 +1621,24 @@ function resolveEncounter(approachId) {
     if (c.drop === "stone") { const s = mineDrop(e.depth); state.inv[s] = (state.inv[s] || 0) + 1; }
     else if (c.drop) { state.inv[c.drop] = (state.inv[c.drop] || 0) + 1; }
     toast(c.best);
+    doMineYield(e.key, e.depth);
   } else {
-    toast(c.ok);
+    // it wasn't settled — the creature gets a hit in (lessened by your wards)
+    const dmg = Math.max(2, creatureBite(c) - defense());
+    state.health = Math.max(0, state.health - dmg);
+    if (state.health <= 0) { faint(); return; }
+    toast(c.ok + "  (-" + dmg + " health)");
+    doMineYield(e.key, e.depth);   // you push through and still work the seam
   }
-  doMineYield(e.key, e.depth);   // settled — you carry on mining
+  save();
+}
+// Pass out and wake in the infirmary, drained.
+function faint() {
+  encounter = null;
+  state.health = 15; state.energy = 0;
+  loadRoom("infirmary", 5, 9);
+  startDialogue([{ s: "Nurse Bramble", t: "Easy now — you fainted in the mines. Rest here, eat something, and don't push so hard." }]);
+  save();
 }
 
 // Open the Book of Shadows (overview + a page per studied herb).
@@ -1712,6 +1764,7 @@ function advanceDay() {
   state.attendedToday = {};
   state.observedToday = false;
   state.todayLog = [];
+  state.health = HP_MAX; state.energy = EN_MAX;   // a night's rest restores you
   for (const id in state.pots) refreshPot(id);   // pots regrow overnight
   for (const k in state.oreNodes) refreshNode(k); // ore seams replenish
   loadRoom("dorm", 5, 9);   // wake up at home
@@ -1776,6 +1829,7 @@ function brewAttempt() {
     const mk = r.makes;
     brewUI.contents = [];          // consumed (herbs already removed from bag)
     state.inv[mk] = (state.inv[mk] || 0) + 1;
+    state.energy = Math.max(0, state.energy - BREW_COST);   // brewing is magic; it tires you a little
     state.todayLog.push("Brewed a " + ITEMS[mk].name);
     brewUI.msg = "Success — a " + ITEMS[mk].fullName + "!";
     save();
@@ -1829,6 +1883,8 @@ onMousePress(() => {
   if (shopOpen)   { handleShopTap(m); return; }        // merchant shop owns taps
   if (plantMenu)  { handlePlantTap(m); return; }       // seed chooser owns taps
   if (encounter)  { handleEncounterTap(m); return; }   // mine creature owns taps
+  if (meditating) return;                              // sit still and meditate
+  if (bagOpen)    { handleBagTap(m); return; }         // bag / self-care owns taps
   if (journalOpen) { handleBosTap(m); return; }        // Book of Shadows owns taps
   if (dialogue) {                                      // tap advances dialogue
     dialogue.idx += 1;
@@ -1836,7 +1892,7 @@ onMousePress(() => {
     return;
   }
   if (brewUI) { handleBrewTap(m); return; }            // brewing screen owns taps
-  if (m.y < ORIGIN_Y) return;                          // ignore taps on the HUD
+  if (m.y < ORIGIN_Y) { if (m.y >= 34) bagOpen = true; return; }   // tap the satchel/vitals -> Bag
 
   const gx = Math.floor(m.x / TILE);
   const gy = Math.floor((m.y - ORIGIN_Y) / TILE);
@@ -1862,7 +1918,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || encounter || path.length === 0) return;
+  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || encounter || bagOpen || meditating || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
@@ -2094,6 +2150,8 @@ onDraw(() => {
   if (shopOpen)       drawShop();
   if (plantMenu)      drawPlantMenu();
   if (encounter)      drawEncounter();
+  if (bagOpen)        drawBag();
+  if (meditating)     drawMeditate();
   if (dialogue)       drawDialogue();
   else if (toastMsg && !brewUI && !journalOpen && !shopOpen && !plantMenu) drawToast();
   if (nightSummary)   drawNight();
@@ -2110,10 +2168,16 @@ function drawHUD(r) {
     text: "Coin " + state.coin + "   Friend " + state.friendship + "   Day " + state.dayCount + " · " + weekday(),
     pos: vec2(8, 24), size: 10, color: rgb(255, 225, 150),
   });
-  // moon phase indicator (top-right)
-  drawMoon(CANVAS_W - 16, 16, 9, [26, 22, 38]);
-  drawText({ text: moonPhase().name, pos: vec2(CANVAS_W - 30, 28), size: 8,
-             color: rgb(210, 210, 235), anchor: "right" });
+  // moon phase indicator (top-right corner)
+  drawMoon(CANVAS_W - 13, 11, 8, [26, 22, 38]);
+  // health & energy bars (top-right, under the moon)
+  const bx = CANVAS_W - 120, bw = 112;
+  drawText({ text: "HP", pos: vec2(bx - 16, 24), size: 8, color: rgb(220, 130, 130) });
+  drawRect({ pos: vec2(bx, 24), width: bw, height: 6, color: rgb(40, 30, 36), radius: 3 });
+  drawRect({ pos: vec2(bx, 24), width: bw * Math.max(0, state.health) / HP_MAX, height: 6, color: rgb(210, 70, 80), radius: 3 });
+  drawText({ text: "EN", pos: vec2(bx - 16, 34), size: 8, color: rgb(130, 180, 220) });
+  drawRect({ pos: vec2(bx, 34), width: bw, height: 6, color: rgb(28, 34, 42), radius: 3 });
+  drawRect({ pos: vec2(bx, 34), width: bw * Math.max(0, state.energy) / EN_MAX, height: 6, color: rgb(80, 160, 220), radius: 3 });
 
   // inventory chips — compact (icon/colour + count) so the whole satchel fits
   const held = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id]);
@@ -2344,7 +2408,8 @@ function encounterRows() {
   const rows = [], x = 28, w = CANVAS_W - 56, H = 28; let y = 248;
   for (const a of APPROACHES) {
     if (!approachAvailable(a)) continue;   // item-gated: only if you carry it
-    rows.push({ x, y, w, h: H, id: a.id, label: a.label }); y += H + 5;
+    const disabled = a.magic && state.energy < SPELL_COST;
+    rows.push({ x, y, w, h: H, id: a.id, label: a.label + (a.magic ? "  (-" + SPELL_COST + " en)" : ""), magic: a.magic, disabled }); y += H + 5;
   }
   return rows;
 }
@@ -2357,18 +2422,87 @@ function drawEncounter() {
   drawText({ text: c.name + (c.tier === "spirit" ? "  (spirit)" : ""), pos: vec2(CANVAS_W / 2, 172), size: 16, color: rgb(255, 225, 150), anchor: "center" });
   drawText({ text: c.appear, pos: vec2(CANVAS_W / 2, 198), size: 12, color: rgb(225, 220, 240), anchor: "center", width: CANVAS_W - 60 });
   drawText({ text: known ? "Keeper Fenn taught you about this one." : "You don't know this creature yet — guess, or back away.",
-             pos: vec2(CANVAS_W / 2, 224), size: 10, color: rgb(170, 170, 190), anchor: "center", width: CANVAS_W - 50 });
+             pos: vec2(CANVAS_W / 2, 222), size: 10, color: rgb(170, 170, 190), anchor: "center", width: CANVAS_W - 50 });
+  drawText({ text: "Health " + state.health + "   Energy " + state.energy, pos: vec2(CANVAS_W / 2, 238), size: 10,
+             color: rgb(200, 190, 170), anchor: "center" });
   for (const b of encounterRows()) {
     const retreat = b.id === "retreat";
-    const hint = known && b.id === c.calmWith;   // highlight the response you studied
-    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: hint ? rgb(58, 70, 56) : rgb(46, 40, 58), radius: 6,
-               outline: { color: hint ? rgb(150, 220, 150) : (retreat ? rgb(150, 130, 200) : rgb(120, 180, 160)), width: hint ? 2 : 1 } });
-    drawText({ text: b.label + (hint ? "   (try this)" : ""), pos: vec2(b.x + 12, b.y + b.h / 2), size: 12,
-               color: hint ? rgb(220, 245, 220) : rgb(225, 225, 240), anchor: "left" });
+    const hint = known && b.id === c.calmWith && !b.disabled;   // highlight the studied response
+    const oc = b.disabled ? rgb(90, 80, 90) : (hint ? rgb(150, 220, 150) : (retreat ? rgb(150, 130, 200) : rgb(120, 180, 160)));
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: hint ? rgb(58, 70, 56) : rgb(46, 40, 58),
+               opacity: b.disabled ? 0.5 : 1, radius: 6, outline: { color: oc, width: hint ? 2 : 1 } });
+    drawText({ text: b.label + (hint ? "   (try this)" : ""), pos: vec2(b.x + 12, b.y + b.h / 2), size: 11,
+               color: b.disabled ? rgb(150, 145, 155) : (hint ? rgb(220, 245, 220) : rgb(225, 225, 240)), anchor: "left" });
   }
 }
 function handleEncounterTap(m) {
-  for (const b of encounterRows()) { if (pointIn(m, b)) { resolveEncounter(b.id); return; } }
+  for (const b of encounterRows()) { if (pointIn(m, b) && !b.disabled) { resolveEncounter(b.id); return; } }
+}
+
+/* ---------- Bag: eat / drink / meditate ---------- */
+function useConsumable(id) {
+  const r = ITEMS[id].restore || {};
+  if (r.health) state.health = Math.min(HP_MAX, state.health + r.health);
+  if (r.energy) state.energy = Math.min(EN_MAX, state.energy + r.energy);
+  state.inv[id] -= 1;
+  const verb = ITEMS[id].kind === "remedy" ? "Drank" : "Ate";
+  toast(verb + " " + ITEMS[id].name + " (" + (r.health ? "+" + r.health + " HP" : "+" + r.energy + " EN") + ").");
+  save();
+}
+function bagRows() {
+  const rows = [], x = 22, w = CANVAS_W - 44, H = 24; let y = 120;
+  const push = (o) => { o.x = x; o.y = y; o.w = w; o.h = H; rows.push(o); y += H + 4; };
+  push({ type: "hdr", label: "Eat / Drink" });
+  const consumables = Object.keys(state.inv).filter((id) => state.inv[id] > 0 && ITEMS[id] && ITEMS[id].restore);
+  if (!consumables.length) push({ type: "note", label: "(no food or remedies — buy some in the village)" });
+  for (const id of consumables) {
+    const r = ITEMS[id].restore;
+    push({ type: "use", id, label: ITEMS[id].name + "  x" + state.inv[id], gain: r.health ? "+" + r.health + " HP" : "+" + r.energy + " EN" });
+  }
+  y += 8;
+  push({ type: "meditate", label: "Meditate — ground & draw energy from the earth" });
+  y += 4;
+  push({ type: "close", label: "Close" });
+  return rows;
+}
+function drawBag() {
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.86 });
+  drawRect({ pos: vec2(14, 44), width: CANVAS_W - 28, height: CANVAS_H - 80, color: rgb(34, 28, 44), radius: 10, outline: { color: rgb(150, 120, 60), width: 2 } });
+  drawText({ text: "Bag", pos: vec2(CANVAS_W / 2, 58), size: 16, color: rgb(255, 225, 150), anchor: "center" });
+  drawText({ text: "Health " + state.health + " / " + HP_MAX + "    Energy " + state.energy + " / " + EN_MAX,
+             pos: vec2(CANVAS_W / 2, 80), size: 11, color: rgb(230, 220, 200), anchor: "center" });
+  for (const b of bagRows()) {
+    if (b.type === "hdr") { drawText({ text: b.label, pos: vec2(b.x, b.y + 4), size: 12, color: rgb(190, 175, 220) }); continue; }
+    if (b.type === "note") { drawText({ text: b.label, pos: vec2(b.x + 6, b.y + 4), size: 10, color: rgb(150, 150, 170) }); continue; }
+    const accent = b.type === "close" ? rgb(150, 130, 200) : (b.type === "meditate" ? rgb(140, 200, 160) : rgb(180, 200, 130));
+    drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(46, 40, 58), radius: 6, outline: { color: accent, width: 1 } });
+    if (b.type === "close" || b.type === "meditate") {
+      drawText({ text: b.label, pos: vec2(b.x + b.w / 2, b.y + b.h / 2), size: 12, color: rgb(225, 225, 240), anchor: "center" });
+    } else {
+      drawText({ text: b.label, pos: vec2(b.x + 8, b.y + b.h / 2), size: 11, color: rgb(225, 225, 240), anchor: "left" });
+      drawText({ text: b.gain, pos: vec2(b.x + b.w - 8, b.y + b.h / 2), size: 11, color: accent, anchor: "right" });
+    }
+  }
+}
+function handleBagTap(m) {
+  for (const b of bagRows()) {
+    if (!pointIn(m, b)) continue;
+    if (b.type === "close") bagOpen = false;
+    else if (b.type === "use") useConsumable(b.id);
+    else if (b.type === "meditate") { bagOpen = false; meditating = { start: time(), from: state.energy }; }
+    return;
+  }
+}
+function drawMeditate() {
+  const t = Math.min(1, (time() - meditating.start) / MEDITATE_SECS);
+  state.energy = Math.min(EN_MAX, Math.round(meditating.from + MEDITATE_GAIN * t));
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 10, 16), opacity: 0.9 });
+  drawText({ text: "Meditating...", pos: vec2(CANVAS_W / 2, CANVAS_H / 2 - 40), size: 16, color: rgb(200, 220, 255), anchor: "center" });
+  drawText({ text: "Drawing energy up from the earth.", pos: vec2(CANVAS_W / 2, CANVAS_H / 2 - 16), size: 11, color: rgb(170, 185, 210), anchor: "center" });
+  const bw = 200, bx = CANVAS_W / 2 - bw / 2, by = CANVAS_H / 2 + 10;
+  drawRect({ pos: vec2(bx, by), width: bw, height: 10, color: rgb(28, 34, 42), radius: 5 });
+  drawRect({ pos: vec2(bx, by), width: bw * t, height: 10, color: rgb(90, 170, 220), radius: 5 });
+  if (t >= 1) { meditating = null; toast("You feel renewed."); save(); }
 }
 
 /* ---------- Field journal: a parchment page of studies + takeaways ---------- */
