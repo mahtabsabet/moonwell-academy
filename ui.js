@@ -427,6 +427,17 @@ function shopRows() {
   push({ type: "close", label: "Close" });
   return rows;
 }
+// Pick the best sprite to show next to a shop row: real item icon, herb plant,
+// or (for furniture) its decor sprite. Returns null if no art is loaded yet.
+function shopIcon(id) {
+  const it = ITEMS[id];
+  if (!it) return null;
+  if (it.kind === "furniture" && ready(it.sprite)) return it.sprite;
+  if (ready("item_" + id)) return "item_" + id;
+  if (ready("herb_" + id)) return "herb_" + id;
+  if (it.kind === "herb") return herbSprite(id);
+  return null;
+}
 function drawShop() {
   const shop = SHOPS[shopOpen] || SHOPS.general;
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(8, 6, 14), opacity: 0.86 });
@@ -449,7 +460,10 @@ function drawShop() {
       } else if (isNav) {
         drawText({ text: b.type === "prev" ? "< Prev" : "Next >", pos: vec2(b.x + b.w / 2, b.y + 5), size: 12, color: rgb(220, 220, 235), anchor: "center" });
       } else {
-        drawText({ text: b.label, pos: vec2(b.x + 8, b.y + 5), size: 11, color: rgb(225, 225, 240) });
+        const icon = shopIcon(b.id);
+        const lx = icon ? b.x + 26 : b.x + 8;
+        if (icon) drawSprite({ sprite: icon, pos: vec2(b.x + 13, b.y + (b.h - 3) / 2), anchor: "center", width: 16, height: 16 });
+        drawText({ text: b.label, pos: vec2(lx, b.y + 5), size: 11, color: rgb(225, 225, 240) });
         if (b.sub) drawText({ text: b.sub, pos: vec2(b.x + b.w - 70, b.y + 5), size: 9, color: rgb(160, 160, 180), anchor: "right" });
         drawText({ text: (isBuy ? "-" : "+") + b.price + "c", pos: vec2(b.x + b.w - 8, b.y + 5), size: 11, color: accent, anchor: "right" });
       }
