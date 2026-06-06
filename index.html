@@ -107,8 +107,8 @@ function freshState() {
     crystalsKnown: {},    // crystal id -> true (studied in Crystals)
     creaturesKnown: {},   // creature id -> true (studied in Magical Creatures)
     astronomyKnown: {},   // astronomy topic id -> true (studied in Astronomy)
-    furniture: {},        // furniture id -> count owned (bought, not yet placed)
-    dormDecor: [],         // placed dorm furniture: [{ id, sprite, gx, gy, flat }]
+    furniture: { deco_altarcloth: 1, deco_pentacle: 1, deco_chalice: 1 },  // owned (a few starters)
+    altarSlots: { wall: [], altar: ["deco_altarcloth", "deco_pentacle", "deco_chalice"], floor: [] },  // ids on the altar, by zone
     pots: {},             // herb id -> { stock, readyDay } (greenhouse pots)
     oreNodes: {},         // mine node slot -> { ore, readyDay }
     seeds: {},            // herb id -> count (kept out of the satchel HUD)
@@ -143,14 +143,14 @@ function newGame() {
   encounter = null;      // { slot, creature } — mine creature encounter
   bagOpen = false;       // bag / self-care overlay
   meditating = null;     // { start, from } — grounding meditation
-  decorating = null;     // { sel } — dorm decorating mode
+  altarUI = null;        // Decorate Altar close-up
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
   save();                // persist the fresh game
 }
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
-let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, decorating, shopPage = 0, resetArmed = false;
+let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, altarUI, shopPage = 0, resetArmed = false;
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Save / load (localStorage) ---------- */
@@ -174,7 +174,7 @@ function bootGame() {
   player = { px: 0, py: 0, gx: 5, gy: 9, dir: "down" };
   path = []; pendingAction = null; pendingDoor = null;
   dialogue = null; toastMsg = null; brewUI = null; journalOpen = false; bosPage = 0;
-  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null; encounter = null; bagOpen = false; meditating = null; decorating = null;
+  introLetter = false; showTimetable = false; nightSummary = false; shopOpen = false; plantMenu = null; encounter = null; bagOpen = false; meditating = null; altarUI = null;
   syncGreenhousePots();
   const p = data.p || { gx: 5, gy: 9, dir: "down" };
   state.roomId = state.roomId || "dorm";
@@ -325,14 +325,33 @@ function dispatchAction(o) {
     case "journal": return actJournal();
     case "timetable": return actTimetable();
     case "observe": return actObserve();
-    case "decorate": return actDecorate();
+    case "altar": return actAltar();
   }
 }
 
-// Open the dorm decorating mode: pick owned furniture from the palette, tap a
-// tile to place it; tap a placed piece to select it, then rotate / remove /
-// move it. Cosmetic only — placed pieces never block walking.
-function actDecorate() { decorating = { sel: null, pick: null, page: 0 }; }
+// Open the Decorate Altar close-up: arrange owned pieces across three zones —
+// wall charms, the altar surface (ritual tools), and the floor around it.
+function actAltar() { altarUI = { page: 0 }; }
+const zoneName = (z) => z === "wall" ? "wall" : z === "altar" ? "altar surface" : "floor";
+// every id currently placed on the altar (any zone)
+function altarPlaced() { const s = state.altarSlots; return new Set([...s.wall, ...s.altar, ...s.floor]); }
+// furniture you own but haven't placed yet (the palette)
+function ownedDecor() {
+  const placed = altarPlaced();
+  return DECOR_ORDER.filter((id) => (state.furniture[id] || 0) > 0 && !placed.has(id));
+}
+function placeAltar(id) {
+  const zone = decorZone(id), slots = state.altarSlots[zone];
+  if (slots.includes(id)) return;
+  if (slots.length >= ALTAR_CAP[zone]) { toast("The " + zoneName(zone) + " is full."); return; }
+  slots.push(id); save();
+}
+function removeAltar(id) {
+  for (const z of ["wall", "altar", "floor"]) {
+    const i = state.altarSlots[z].indexOf(id);
+    if (i >= 0) { state.altarSlots[z].splice(i, 1); save(); return; }
+  }
+}
 
 // Chart the moon at the observatory: read tonight's phase and its meaning.
 function actObserve() {
@@ -835,7 +854,7 @@ onMousePress(() => {
     return;
   }
   if (brewUI) { handleBrewTap(m); return; }            // brewing screen owns taps
-  if (decorating) { handleDecorateTap(m); return; }    // dorm decorating owns taps
+  if (altarUI) { handleAltarTap(m); return; }    // altar screen owns taps
   if (m.y < ORIGIN_Y) { if (m.y >= 34) bagOpen = true; return; }   // tap the satchel/vitals -> Bag
 
   const gx = Math.floor(m.x / TILE);
@@ -862,7 +881,7 @@ onMousePress(() => {
    MOVEMENT — advance the player along the current path each frame.
    ============================================================================ */
 onUpdate(() => {
-  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || encounter || bagOpen || meditating || decorating || path.length === 0) return;
+  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary || shopOpen || plantMenu || encounter || bagOpen || meditating || altarUI || path.length === 0) return;
   const t = path[0];
   const tx = cx(t.x), ty = cy(t.y);
   const dx = tx - player.px, dy = ty - player.py;
