@@ -120,6 +120,8 @@ function freshState() {
     health: HP_MAX,       // faint at 0 -> infirmary
     energy: EN_MAX,       // magic spends it; food/meditation restore it
     dayCount: 1,          // 1-based; weekday = DAYS[(dayCount-1) % 7]
+    beats: 0,             // "beats" of activity today -> time of day (see periodIdx)
+    greetedToday: {},     // student id -> true (one friendship bump per student per day)
     attendedToday: {},    // subject id -> true (one lesson per class per day)
     observedToday: false, // charted the moon at the observatory tonight?
     todayLog: [],         // events for tonight's recap
@@ -146,6 +148,7 @@ function newGame() {
   meditating = null;     // { start, from } — grounding meditation
   altarUI = null;        // Decorate Altar close-up
   decorating = null;     // dorm room furniture-placement mode
+  studentRT = {}; studentSeedKey = ""; nextDialoguePrefix = null;  // fresh student world
   syncGreenhousePots();  // start with no pots (none studied yet)
   placePlayer(5, 9, "up");
   save();                // persist the fresh game
@@ -153,6 +156,9 @@ function newGame() {
 
 let player, path, pendingAction, pendingDoor, dialogue, toastMsg, brewUI, journalOpen, bosPage = 0;
 let introLetter, showTimetable, nightSummary, shopOpen, plantMenu, encounter, bagOpen, meditating, altarUI, decorating, shopPage = 0, resetArmed = false;
+let studentRT = {};        // runtime state of students in the ACTIVE room: id -> { gx, gy, px, py, dir, wpi, pauseT }
+let studentSeedKey = "";   // "<roomId>|<period>" — when this changes, re-seed studentRT
+let nextDialoguePrefix = null;  // lines to prepend to the next startDialogue (e.g. a class intro)
 const weekday = () => DAYS[(state.dayCount - 1) % DAYS.length];
 
 /* ---------- Save / load (localStorage) ---------- */
@@ -204,6 +210,41 @@ function placePlayer(gx, gy, dir) {
   if (dir) player.dir = dir;
 }
 
+/* ---------- Time of day (period buckets) ----------
+   No wall-clock: the day flows through Morning -> Afternoon -> Evening as you
+   do things. Each major action is a "beat" (see beat()); enough beats tip the
+   day forward. Students follow these periods (STUDENTS / studentRT). */
+function periodIdx() { const b = state.beats || 0; return b < 2 ? 0 : b < 4 ? 1 : 2; }
+function periodId()  { return DAY_PERIODS[periodIdx()].id; }
+function beat()      { state.beats = (state.beats || 0) + 1; }   // nudge time forward
+
+// Students whose current-period schedule places them in the active room.
+function studentsHere() {
+  const p = periodId();
+  return STUDENTS.filter((s) => s.sched[p] && s.sched[p].room === state.roomId);
+}
+// The student (if any) standing on tile (x,y) of the active room — so the
+// player routes around them and can tap them to chat.
+function studentAt(r, x, y) {
+  if (r !== room()) return null;
+  for (const id in studentRT) { const rt = studentRT[id]; if (rt.gx === x && rt.gy === y) return STUDENTS.find((s) => s.id === id); }
+  return null;
+}
+const adjacentToPlayer = (gx, gy) => Math.abs(gx - player.gx) + Math.abs(gy - player.gy) === 1;
+
+// (Re)place every student of the active room at their period's starting spot.
+function seedStudents() {
+  studentRT = {};
+  for (const s of studentsHere()) {
+    const sc = s.sched[periodId()];
+    let gx, gy;
+    if (sc.act === "wander" && sc.path && sc.path.length) { gx = sc.path[0][0]; gy = sc.path[0][1]; }
+    else { gx = sc.gx; gy = sc.gy; }
+    studentRT[s.id] = { gx, gy, px: cx(gx), py: cy(gy), dir: sc.dir || "down", wpi: 0, pauseT: 0 };
+  }
+  studentSeedKey = state.roomId + "|" + periodId();
+}
+
 function loadRoom(id, gx, gy) {
   state.roomId = id;
   path = []; pendingAction = null; pendingDoor = null;
@@ -215,6 +256,7 @@ function toast(text) {
 }
 
 function startDialogue(lines) {
+  if (nextDialoguePrefix) { lines = nextDialoguePrefix.concat(lines); nextDialoguePrefix = null; }
   dialogue = { lines, idx: 0 };
 }
 
@@ -224,6 +266,7 @@ function walkable(r, x, y) {
   if (doorAt(r, x, y)) return true;        // doors are always walkable
   if (r.grid[y][x] === "#") return false;  // walls block
   if (interAt(r, x, y)) return false;      // props/NPCs are solid
+  if (studentAt(r, x, y)) return false;    // fellow students are solid too
   const dc = decorAt(r, x, y);             // decor blocks unless solid:false
   if (dc && dc.solid !== false) return false;
   return true;
@@ -329,7 +372,29 @@ function dispatchAction(o) {
     case "observe": return actObserve();
     case "altar": return actAltar();
     case "decorate": return actDecorate();
+    case "greet": return actGreet(o.stu);
+    case "peek_altar": return actPeekAltar();
   }
+}
+
+// Chat with a fellow student — a friendly line, and a little friendship (once
+// per student per day). Robin keeps the original common-room friend dialogue.
+function actGreet(stu) {
+  if (!stu) return;
+  state.greetedToday = state.greetedToday || {};
+  if (!state.greetedToday[stu.id]) { state.friendship += 1; state.greetedToday[stu.id] = true; }
+  if (stu.friend) {
+    const first = !state.flags.metFriend;
+    state.flags.metFriend = true;
+    if (first) state.todayLog.push("Met " + stu.name);
+    startDialogue(first ? DIALOGUE.friend_first : DIALOGUE.friend_again);
+  } else {
+    startDialogue(stu.greet || [{ s: stu.name, t: "Hi! See you around the Academy." }]);
+  }
+}
+// Peek at your roommate Ivy's altar in the dorm.
+function actPeekAltar() {
+  startDialogue([{ s: "Ivy's Altar", t: "Ivy's working altar — moon-charm above, chalice and censer laid out. Best not to disturb a rite in progress." }]);
 }
 
 // Open the Decorate Altar close-up: arrange owned pieces across three zones —
@@ -368,6 +433,7 @@ function actObserve() {
   }
   state.observedToday = true;
   state.todayLog.push("Charted the " + p.name);
+  beat();   // an evening at the telescope moves the day forward
   startDialogue([
     { s: "Prof. Vega", t: "Look — tonight is the " + p.name + "." },
     { s: "Prof. Vega", t: p.mean },
@@ -394,6 +460,16 @@ function actClass(id) {
     return;
   }
   state.attendedToday[id] = true;
+  // brief intro beat: name the classmates already seated here, then the lesson
+  const mates = studentsHere().filter((s) => s.sched[periodId()].act === "sit").map((s) => s.name);
+  let scene = "You slip into a seat at the front and open your grimoire, quill ready.";
+  if (mates.length) {
+    const who = mates.length === 1 ? mates[0] : mates.slice(0, -1).join(", ") + " and " + mates[mates.length - 1];
+    scene = who + (mates.length === 1 ? " is" : " are") + " already at " + (mates.length === 1 ? "a desk" : "their desks") +
+            ", quills scratching. You take the seat beside them and open your grimoire.";
+  }
+  nextDialoguePrefix = [{ s: "", t: scene }];
+  beat();   // a lesson moves the day forward
   if (id === "herbology") return teachHerb();
   if (id === "crystals")  return teachCrystal();
   if (id === "creatures") return teachCreature();
@@ -564,6 +640,7 @@ function doMineYield(key, depth) {
   state.skills.mining = (state.skills.mining || 0) + 1;
   state.todayLog.push("Mined " + ITEMS[id].name);
   toast("Struck " + ITEMS[id].name + "!");
+  beat();   // a stint in the mines moves the day forward
   save();
 }
 // First held item of a given kind (for the offer/light approaches).
@@ -633,6 +710,7 @@ function actForage(o) {
   if (gotSeed) state.seeds[id] = (state.seeds[id] || 0) + 1;
   state.todayLog.push("Picked " + yld + " " + nm + (ideal ? " (ideal moon)" : ""));
   toast("Picked " + yld + " " + nm + (ideal ? " — double, ideal moon!" : "") + (gotSeed ? " (+seed)" : ""));
+  beat();   // a spot of foraging moves the day forward
 }
 
 /* ---------- Herb Garden: planting & harvesting ---------- */
@@ -729,6 +807,8 @@ function actSleep() {
 function advanceDay() {
   nightSummary = false;
   state.dayCount += 1;
+  state.beats = 0;              // a new day dawns in the Morning
+  state.greetedToday = {};
   state.attendedToday = {};
   state.observedToday = false;
   state.todayLog = [];
@@ -800,6 +880,7 @@ function brewAttempt() {
     state.energy = Math.max(0, state.energy - BREW_COST);   // brewing is magic; it tires you a little
     state.todayLog.push("Brewed a " + ITEMS[mk].name);
     brewUI.msg = "Success — a " + ITEMS[mk].fullName + "!";
+    beat();   // a successful brew moves the day forward
     save();
   } else if (matchId) {
     brewReturnContents();          // right mix, but not yet taught
@@ -877,6 +958,14 @@ onMousePress(() => {
     if (goals.length) navigate(goals, { action: obj });
     return;
   }
+  // 1b) tapped a fellow student -> walk adjacent, then chat
+  const stu = studentAt(r, gx, gy);
+  if (stu) {
+    const rt = studentRT[stu.id];
+    const goals = neighborGoals(r, gx, gy);
+    if (goals.length) navigate(goals, { action: { action: "greet", stu, gx: rt.gx, gy: rt.gy } });
+    return;
+  }
   // 2) tapped a door -> walk onto it, then change rooms
   const door = doorAt(r, gx, gy);
   if (door) { navigate([{ x: gx, y: gy }], { door }); return; }
@@ -905,6 +994,38 @@ onUpdate(() => {
     player.py += ny * step;
     if (Math.abs(nx) > Math.abs(ny)) player.dir = nx > 0 ? "right" : "left";
     else player.dir = ny > 0 ? "down" : "up";
+  }
+});
+
+/* ============================================================================
+   STUDENT LIFE — re-seed when the room or time-of-day changes, then stroll any
+   "wander" students along their looping waypoints. Runs every frame (even while
+   the player stands still), but pauses under any full-screen overlay.
+   ============================================================================ */
+onUpdate(() => {
+  if (state.roomId + "|" + periodId() !== studentSeedKey) seedStudents();
+  if (dialogue || brewUI || journalOpen || introLetter || showTimetable || nightSummary ||
+      shopOpen || plantMenu || encounter || bagOpen || meditating || altarUI || decorating) return;
+  for (const s of studentsHere()) {
+    const rt = studentRT[s.id]; if (!rt) continue;
+    const sc = s.sched[periodId()];
+    if (sc.act !== "wander" || !sc.path || sc.path.length < 2) continue;
+    if (rt.pauseT > 0) { rt.pauseT -= dt(); continue; }
+    const wp = sc.path[rt.wpi % sc.path.length];
+    const tx = cx(wp[0]), ty = cy(wp[1]);
+    const dx = tx - rt.px, dy = ty - rt.py, len = Math.hypot(dx, dy);
+    const stepv = STUDENT_SPEED * dt();
+    if (len <= stepv || len === 0) {
+      rt.px = tx; rt.py = ty; rt.gx = wp[0]; rt.gy = wp[1];
+      rt.wpi = (rt.wpi + 1) % sc.path.length;
+      rt.pauseT = 0.6 + Math.random() * 1.1;     // a beat to pause and look around
+    } else {
+      const nx = dx / len, ny = dy / len;
+      rt.px += nx * stepv; rt.py += ny * stepv;
+      rt.dir = Math.abs(nx) > Math.abs(ny) ? (nx > 0 ? "right" : "left") : (ny > 0 ? "down" : "up");
+      rt.gx = Math.round((rt.px - TILE / 2) / TILE);
+      rt.gy = Math.round((rt.py - ORIGIN_Y - TILE / 2) / TILE);
+    }
   }
 });
 

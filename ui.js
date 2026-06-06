@@ -161,10 +161,12 @@ onDraw(() => {
       ideal = ripe && isIdealMoon(o.herbId);
     }
     const sprKey = isPot ? (ripe ? herbSprite(o.herbId) : "pots") : o.kind;
-    if (o.kind === "altar") {
-      drawDormAltar(o);
+    if (o.kind === "altar" || o.kind === "altar_ivy") {
+      if (o.kind === "altar") drawDormAltar(o); else drawIvyAltar(o);
       drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
                  color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 255, 255), width: p * 2 }, radius: 4 });
+      drawText({ text: o.name, pos: vec2(cx(o.gx), ORIGIN_Y + o.gy * TILE + TILE + 1), size: 8, anchor: "center", width: TILE * 2.6, color: rgb(230, 225, 245) });
+      continue;
     } else if (ready(sprKey)) {
       // NPCs render as tall characters (player height); props/pots near-native.
       const isChar = CHAR_KINDS.has(o.kind);
@@ -199,6 +201,9 @@ onDraw(() => {
       color: (isPot && !ripe) ? rgb(150, 150, 165) : (ideal ? rgb(255, 240, 170) : rgb(230, 225, 245)),
     });
   }
+
+  // --- fellow students (scheduled NPCs; seated, standing, or strolling) ---
+  drawStudents(r);
 
   // --- player (sprite if supplied, else placeholder rect + facing nub) ---
   // Drawn ~1.4 tiles tall and bottom-anchored so the feet rest on the tile
@@ -253,6 +258,10 @@ function drawHUD(r) {
   // top strip
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: ORIGIN_Y, color: rgb(26, 22, 38) });
   drawText({ text: r.name, pos: vec2(8, 6), size: 12, color: rgb(225, 215, 250) });
+  // time-of-day chip (top-right, left of the moon): a tinted dot + the period
+  const per = DAY_PERIODS[periodIdx()];
+  drawCircle({ pos: vec2(CANVAS_W - 30, 9), radius: 3.5, color: col(per.tint) });
+  drawText({ text: per.name, pos: vec2(CANVAS_W - 36, 4), size: 9, anchor: "right", color: col(per.tint) });
   drawText({
     text: "Coin " + state.coin + "   Friend " + state.friendship + "   Day " + state.dayCount + " · " + weekday(),
     pos: vec2(8, 24), size: 10, color: rgb(255, 225, 150),
@@ -598,14 +607,64 @@ function handleAltarTap(m) {
 }
 
 // The dorm altar object: a little table showing a mini version of your altar.
-function drawDormAltar(o) {
+// A little altar table at tile o, showing a wall charm + up to 4 ritual tools.
+function drawMiniAltar(o, wallIds, altarIds) {
   const baseX = cx(o.gx), baseY = ORIGIN_Y + (o.gy + 1) * TILE;
-  const charm = (state.altarSlots.wall || [])[0];
+  const charm = (wallIds || [])[0];
   if (charm) drawDecorAt(charm, baseX, baseY - 30, 0.5);                 // a charm "on the wall" above
   drawRect({ pos: vec2(baseX, baseY - 13), anchor: "center", width: 30, height: 6, color: rgb(120, 92, 64), radius: 2 });
   drawRect({ pos: vec2(baseX - 12, baseY - 12), width: 4, height: 12, color: rgb(96, 72, 50) });
   drawRect({ pos: vec2(baseX + 8, baseY - 12), width: 4, height: 12, color: rgb(96, 72, 50) });
-  (state.altarSlots.altar || []).slice(0, 4).forEach((id, i) => drawDecorAt(id, baseX - 9 + i * 6, baseY - 13, 0.42));
+  (altarIds || []).slice(0, 4).forEach((id, i) => drawDecorAt(id, baseX - 9 + i * 6, baseY - 13, 0.42));
+}
+// Your altar mirrors your placed pieces; Ivy's shows a fixed little set.
+function drawDormAltar(o) { drawMiniAltar(o, state.altarSlots.wall, state.altarSlots.altar); }
+function drawIvyAltar(o)  { drawMiniAltar(o, ["deco_moonphases"], ["deco_chalice", "deco_censer", "deco_bell"]); }
+
+/* ---------- Fellow students (scheduled NPCs) ----------
+   Drawn from studentRT (seeded/animated in index.html). Seated students get a
+   little writing desk and a scribbling quill; everyone gets a name tag, and a
+   tappable halo when you're standing next to them. Art: stu_<id>_<dir> sprites
+   when present, else a colour-tinted stand-in built from the player rotation. */
+function drawStudentSprite(s, rt, seated) {
+  const dirKey = "stu_" + s.id + "_" + rt.dir, downKey = "stu_" + s.id + "_down";
+  const key = ready(dirKey) ? dirKey : (ready(downKey) ? downKey : null);
+  const h = seated ? PLAYER_H * 0.8 : PLAYER_H;
+  const footY = rt.py + TILE * 0.42 - (seated ? 4 : 0);
+  if (key) {
+    drawSprite({ sprite: key, anchor: "bot", pos: vec2(rt.px, footY), width: h * PLAYER_AR_S, height: h });
+  } else {
+    // stand-in until bespoke art loads: the player rotation, tinted to the student
+    const pk = ready("player_" + rt.dir) ? "player_" + rt.dir : (ready("player_down") ? "player_down" : null);
+    if (pk) drawSprite({ sprite: pk, anchor: "bot", pos: vec2(rt.px, footY), width: h * PLAYER_AR, height: h, color: col(s.color) });
+    else drawRect({ pos: vec2(rt.px, footY), anchor: "bot", width: 16, height: h * 0.6, color: col(s.color), radius: 4, outline: { color: rgb(20, 16, 24), width: 2 } });
+  }
+}
+function drawStudents(r) {
+  const p = periodId();
+  for (const id in studentRT) {
+    const s = STUDENTS.find((x) => x.id === id); if (!s) continue;
+    const rt = studentRT[id];
+    const sc = s.sched[p]; if (!sc) continue;
+    const seated = sc.act === "sit";
+    drawStudentSprite(s, rt, seated);
+    if (seated) {
+      // a writing desk in front, hiding the legs so they read as seated
+      const dy = ORIGIN_Y + rt.gy * TILE + TILE - 4;
+      drawRect({ pos: vec2(rt.px, dy), anchor: "center", width: 28, height: 11, color: rgb(122, 92, 60), radius: 2, outline: { color: rgb(80, 58, 38), width: 1 } });
+      drawRect({ pos: vec2(rt.px - 10, dy + 4), width: 3, height: 8, color: rgb(92, 68, 46) });
+      drawRect({ pos: vec2(rt.px + 7, dy + 4), width: 3, height: 8, color: rgb(92, 68, 46) });
+      // a small open notebook + a quill that scratches back and forth
+      drawRect({ pos: vec2(rt.px, dy - 1), anchor: "center", width: 12, height: 7, color: rgb(238, 232, 214), radius: 1 });
+      const sx = rt.px - 3 + (Math.sin(time() * 6 + rt.gx) * 0.5 + 0.5) * 6;
+      drawRect({ pos: vec2(sx, dy - 5), width: 1.5, height: 6, color: rgb(70, 55, 45), angle: 28 });
+    }
+    drawText({ text: s.name, pos: vec2(rt.px, ORIGIN_Y + rt.gy * TILE - 6), size: 7, anchor: "center", width: TILE * 2, color: rgb(236, 230, 250) });
+    if (adjacentToPlayer(rt.gx, rt.gy)) {
+      drawRect({ pos: vec2(rt.gx * TILE + 1, ORIGIN_Y + rt.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+                 color: rgb(0, 0, 0), opacity: 0, outline: { color: rgb(255, 255, 255), width: pulse() * 2 }, radius: 4 });
+    }
+  }
 }
 
 /* ---------- Dorm room decorating ----------

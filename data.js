@@ -871,11 +871,14 @@ const ROOMS = {
       { gx: 7, gy: 9, kind: "timetable", name: "Timetable", color: [190, 170, 130], action: "timetable" },
       { gx: 4, gy: 9, kind: "altar", name: "Altar", color: [150, 120, 175], action: "altar" },
       { gx: 6, gy: 9, kind: "decorate", name: "Decorate Room", color: [180, 150, 200], action: "decorate" },
+      // your roommate Ivy's corner: her own little altar (look, don't touch)
+      { gx: 7, gy: 1, kind: "altar_ivy", name: "Ivy's Altar", color: [150, 180, 150], action: "peek_altar" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
     decor: [
-      { gx: 9, gy: 2, kind: "bookshelf" },
+      { gx: 1, gy: 2, kind: "bookshelf" },
+      { gx: 9, gy: 1, kind: "bed" },              // Ivy's bed
       { gx: 1, gy: 10, kind: "lantern", size: 26 },
       { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 40 },
     ],
@@ -894,9 +897,8 @@ const ROOMS = {
       { gx: 9,  gy: 0,  to: "observatory", atGx: 6,  atGy: 10, label: "Observatory ^" },
       { gx: 11, gy: 9,  to: "infirmary",   atGx: 1,  atGy: 9,  label: "Infirmary >" },
     ],
-    inters: [
-      { gx: 3, gy: 8, kind: "friend", name: "Robin", color: [240, 150, 190], action: "friend" },
-    ],
+    // Robin and the other students gather here on their daily routines (see STUDENTS)
+    inters: [],
     decor: [
       { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
       { gx: 10, gy: 1,  kind: "lantern", size: 26 },
@@ -1304,3 +1306,81 @@ const ROOMS = {
 
 // The greenhouse's permanent fixtures (Prof. Sage); pots are appended per herb.
 const GH_BASE = ROOMS.greenhouse.inters.slice();
+
+/* ============================================================================
+   STUDENTS — a cast of fellow witchlings who follow daily routines, Stardew-
+   style. The day is split into three PERIODS (see state.beats / periodIdx);
+   each student's `sched` says where they are and what they're doing in each.
+     act: "sit"    -> seated at a desk, writing (classrooms)
+          "stand"  -> standing at a spot, facing `dir`
+          "wander" -> strolling a looping `path` of [gx,gy] waypoints
+   Art: bespoke PixelLab sprites under stu_<id>_<dir> (down/up/left/right);
+   until those load, each renders as a colour-tinted stand-in so the world is
+   always populated. `friend` marks Robin (the established common-room friend).
+   ============================================================================ */
+const STUDENT_SPEED = 55;     // wandering pace in px/sec (gentler than the player)
+const PLAYER_AR_S   = 0.5;    // aspect (w/h) the student sprites are padded to
+const DAY_PERIODS = [
+  { id: "morning",   name: "Morning",   tint: [255, 226, 150] },
+  { id: "afternoon", name: "Afternoon", tint: [255, 198, 120] },
+  { id: "evening",   name: "Evening",   tint: [150, 168, 230] },
+];
+
+const STUDENTS = [
+  { id: "robin", name: "Robin", color: [240, 150, 190], sprite: "stu_robin", friend: true,
+    sched: {
+      morning:   { room: "courtyard", gx: 3, gy: 8, dir: "down", act: "stand" },
+      afternoon: { room: "greenhouse", gx: 3, gy: 6, dir: "right", act: "stand" },
+      evening:   { room: "courtyard", gx: 4, gy: 7, dir: "down", act: "stand" },
+    } },
+  { id: "ivy", name: "Ivy", color: [120, 180, 110], sprite: "stu_ivy", roommate: true,
+    greet: [{ s: "Ivy", t: "Morning, roomie! I left some moon-tea steeping if you want a cup." },
+            { s: "Ivy", t: "Don't mind my side of the room — the altar's mid-ritual." }],
+    sched: {
+      morning:   { room: "dorm", gx: 8, gy: 3, dir: "down", act: "stand" },
+      afternoon: { room: "courtyard", act: "wander", path: [[3, 7], [8, 7], [8, 3], [3, 3]] },
+      evening:   { room: "dorm", gx: 8, gy: 3, dir: "left", act: "stand" },
+    } },
+  { id: "pip", name: "Pip", color: [235, 205, 90], sprite: "stu_pip",
+    greet: [{ s: "Pip", t: "Did you do the Potions reading? I, um, may have turned mine into a frog." }],
+    sched: {
+      morning:   { room: "potions", gx: 3, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "courtyard", act: "wander", path: [[4, 6], [8, 6], [8, 9], [4, 9]] },
+      evening:   { room: "village", act: "wander", path: [[3, 7], [8, 7], [8, 3], [3, 3]] },
+    } },
+  { id: "luna", name: "Luna", color: [180, 160, 225], sprite: "stu_luna",
+    greet: [{ s: "Luna", t: "The cards said I'd meet a friend today. ...Oh! That's you, isn't it." }],
+    sched: {
+      morning:   { room: "divination", gx: 4, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "courtyard", gx: 7, gy: 5, dir: "down", act: "stand" },
+      evening:   { room: "courtyard", gx: 6, gy: 6, dir: "left", act: "stand" },
+    } },
+  { id: "hazel", name: "Hazel", color: [205, 160, 110], sprite: "stu_hazel",
+    greet: [{ s: "Hazel", t: "Shh — I'm three chapters ahead in the grimoire and it's just getting good." }],
+    sched: {
+      morning:   { room: "crystals", gx: 4, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "greenhouse", gx: 8, gy: 6, dir: "left", act: "stand" },
+      evening:   { room: "courtyard", act: "wander", path: [[3, 4], [7, 4], [7, 8], [3, 8]] },
+    } },
+  { id: "briar", name: "Briar", color: [80, 150, 150], sprite: "stu_briar",
+    greet: [{ s: "Briar", t: "Sigils are just doodles that mean business. Don't tell Prof. Ember I said that." }],
+    sched: {
+      morning:   { room: "spellcraft", gx: 4, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "village", act: "wander", path: [[3, 3], [8, 3], [8, 7], [3, 7]] },
+      evening:   { room: "village", gx: 7, gy: 6, dir: "down", act: "stand" },
+    } },
+  { id: "cleo", name: "Cleo", color: [160, 120, 200], sprite: "stu_cleo",
+    greet: [{ s: "Cleo", t: "A proper witch is never rushed, darling. Poise is half the spell." }],
+    sched: {
+      morning:   { room: "kitchen", gx: 4, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "courtyard", gx: 4, gy: 5, dir: "down", act: "stand" },
+      evening:   { room: "courtyard", gx: 5, gy: 7, dir: "up", act: "stand" },
+    } },
+  { id: "marlow", name: "Marlow", color: [110, 140, 210], sprite: "stu_marlow",
+    greet: [{ s: "Marlow", t: "Mind the third cauldron — it hums when the moon's full. Peaceful, really." }],
+    sched: {
+      morning:   { room: "potions", gx: 5, gy: 6, dir: "down", act: "sit" },
+      afternoon: { room: "greenhouse", gx: 3, gy: 8, dir: "down", act: "stand" },
+      evening:   { room: "courtyard", act: "wander", path: [[6, 4], [6, 8], [3, 8], [3, 4]] },
+    } },
+];
