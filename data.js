@@ -355,18 +355,18 @@ const DECOR_META = {
   deco_orb:        { zone: "floor", h: 28 },
   deco_telescope:  { zone: "floor", h: 50 },
   // altar surface — ritual tools (to scale)
-  deco_altarcloth: { zone: "altar", h: 30, flat: true },
+  deco_altarcloth: { zone: "altar", h: 28, flat: true },
   deco_pentacle:   { zone: "altar", h: 22, flat: true },
   deco_chalice:    { zone: "altar", h: 20 },
-  deco_athame:     { zone: "altar", h: 17 },
-  deco_wand:       { zone: "altar", h: 22 },
-  deco_censer:     { zone: "altar", h: 20 },
-  deco_besom:      { zone: "altar", h: 40 },
-  deco_bell:       { zone: "altar", h: 16 },
-  deco_cauldron:   { zone: "altar", h: 24 },
-  deco_mirror:     { zone: "altar", h: 22 },
-  deco_salt:       { zone: "altar", h: 12 },
-  deco_offering:   { zone: "altar", h: 14 },
+  deco_athame:     { zone: "altar", h: 16 },
+  deco_wand:       { zone: "altar", h: 24 },
+  deco_censer:     { zone: "altar", h: 18 },
+  deco_besom:      { zone: "altar", h: 34 },
+  deco_bell:       { zone: "altar", h: 15 },
+  deco_cauldron:   { zone: "altar", h: 22 },
+  deco_mirror:     { zone: "altar", h: 24 },
+  deco_salt:       { zone: "altar", h: 11 },
+  deco_offering:   { zone: "altar", h: 13 },
   // wall — hung charms
   deco_moonphases: { zone: "wall", h: 26 },
   deco_tapestry:   { zone: "wall", h: 36 },
@@ -377,7 +377,8 @@ const DECOR_META = {
   deco_botanical:  { zone: "wall", h: 26 },
   deco_starchart:  { zone: "wall", h: 28 },
 };
-const ALTAR_CAP = { wall: 2, altar: 8, floor: 4 };   // how many fit in each zone
+const ALTAR_CAP = { wall: 2, altar: 8 };   // charms on the wall, tools on the surface
+// "floor"-zone pieces are homely furniture placed freely in the dorm room instead
 const decorZone = (id) => (DECOR_META[id] || {}).zone || "altar";
 
 /* ---------- Village shops ----------
@@ -869,6 +870,7 @@ const ROOMS = {
       { gx: 9, gy: 9, kind: "desk", name: "Book of Shadows", color: [150, 130, 90], action: "journal" },
       { gx: 7, gy: 9, kind: "timetable", name: "Timetable", color: [190, 170, 130], action: "timetable" },
       { gx: 4, gy: 9, kind: "altar", name: "Altar", color: [150, 120, 175], action: "altar" },
+      { gx: 6, gy: 9, kind: "decorate", name: "Decorate Room", color: [180, 150, 200], action: "decorate" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.

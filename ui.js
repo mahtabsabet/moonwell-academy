@@ -89,8 +89,9 @@ onDraw(() => {
   }
 
   // --- placed dorm furniture (cosmetic; only in the dorm) ---
-  // (altar pieces live on the Decorate Altar close-up; the dorm altar object
-  //  draws a mini version of them — see drawDormAltar)
+  // (wall charms + ritual tools live on the Decorate Altar close-up; homely
+  //  furniture is placed freely here in the room)
+  if (r === ROOMS.dorm) (state.dormDecor || []).forEach(drawPlacedDecor);
 
   // --- interactables (NPCs / props) with a gentle "tappable" glow ---
   for (const o of r.inters) {
@@ -239,6 +240,7 @@ onDraw(() => {
   if (bagOpen)        drawBag();
   if (meditating)     drawMeditate();
   if (altarUI)        drawAltar();
+  if (decorating)     drawDecorate();
   if (dialogue)       drawDialogue();
   else if (toastMsg && !brewUI && !journalOpen && !shopOpen && !plantMenu) drawToast();
   if (nightSummary)   drawNight();
@@ -490,20 +492,20 @@ function handleShopTap(m) {
 }
 
 /* ---------- Decorate Altar (close-up) ----------
-   Tapping the dorm altar opens this angled-down close-up. Pieces sit in three
-   zones on the altar art — charms on the wall, ritual tools on the surface
-   (a near row drawn larger, a far row smaller for depth) and furniture on the
-   floor in front. Tap a palette piece to place it; tap a placed piece to remove
-   it. Every piece draws at its DECOR_META height × the slot scale, so a salt
-   dish stays tiny and a besom towers. */
+   Tapping the dorm altar opens this angled-down close-up. Pieces sit in two
+   zones on the altar art — charms on the wall and ritual tools on the surface
+   (a near row, filled first and drawn larger, then a far row, smaller for
+   depth). Tap a palette piece to place it; tap a placed piece to remove it.
+   Each piece draws at its DECOR_META height × the slot scale, so a salt dish
+   stays tiny and a besom towers. (Homely furniture is placed in the dorm room
+   instead — see the Decorate Room object.) */
 const ALTAR_VIEW_H = 432;   // the altar art fills the top of the screen; palette below
 const ALTAR_SLOTS = {
-  wall:  [ { x: 138, y: 150, s: 1.15 }, { x: 246, y: 150, s: 1.15 } ],
-  altar: [ // far row (smaller) ...
-           { x: 120, y: 250, s: 1.05 }, { x: 168, y: 250, s: 1.05 }, { x: 216, y: 250, s: 1.05 }, { x: 264, y: 250, s: 1.05 },
-           // ... near row (larger)
-           { x: 110, y: 292, s: 1.40 }, { x: 166, y: 292, s: 1.40 }, { x: 218, y: 292, s: 1.40 }, { x: 274, y: 292, s: 1.40 } ],
-  floor: [ { x: 64, y: 410, s: 1.20 }, { x: 150, y: 412, s: 1.28 }, { x: 234, y: 412, s: 1.28 }, { x: 320, y: 410, s: 1.20 } ],
+  wall:  [ { x: 128, y: 140, s: 1.2 }, { x: 256, y: 140, s: 1.2 } ],
+  altar: [ // near row — filled first, larger, along the front of the table top
+           { x: 136, y: 260, s: 1.55 }, { x: 188, y: 260, s: 1.55 }, { x: 240, y: 260, s: 1.55 }, { x: 292, y: 260, s: 1.55 },
+           // far row — smaller, set further back on the surface
+           { x: 140, y: 223, s: 1.25 }, { x: 190, y: 223, s: 1.25 }, { x: 240, y: 223, s: 1.25 }, { x: 290, y: 223, s: 1.25 } ],
 };
 const ALTAR_PER = 7;   // palette chips per page
 
@@ -523,7 +525,7 @@ function drawDecorAt(id, x, baseY, scale) {
 // Clickable regions (palette chips + nav + placed pieces + Done) shared by draw & tap.
 function altarRegions() {
   const regs = [];
-  for (const z of ["wall", "altar", "floor"]) {
+  for (const z of ["wall", "altar"]) {
     (state.altarSlots[z] || []).forEach((id, i) => {
       const s = ALTAR_SLOTS[z][i]; if (!s) return;
       const hh = ((DECOR_META[id] || {}).h || 22) * (s.s || 1);
@@ -543,7 +545,6 @@ function altarRegions() {
 }
 
 function drawAltar() {
-  // the altar scene (angled-down art) fills the top; cosy fallback if still loading
   if (ready("altar_scene")) {
     drawSprite({ sprite: "altar_scene", anchor: "topleft", pos: vec2(0, 0), width: CANVAS_W, height: ALTAR_VIEW_H });
   } else {
@@ -551,24 +552,24 @@ function drawAltar() {
     drawRect({ pos: vec2(0, 250), width: CANVAS_W, height: ALTAR_VIEW_H - 250, color: rgb(58, 46, 70) });
   }
   const A = state.altarSlots;
-  // a faint marker at the next free slot of each zone (a gentle "where it lands")
-  for (const z of ["wall", "altar", "floor"]) {
+  // a faint marker at the next free slot of each zone (gentle "where it lands")
+  for (const z of ["wall", "altar"]) {
     const n = A[z].length, s = n < ALTAR_CAP[z] ? ALTAR_SLOTS[z][n] : null;
     if (s) drawRect({ pos: vec2(s.x, s.y - 6), anchor: "center", width: 7, height: 7, color: rgb(255, 240, 200), opacity: 0.16 + pulse() * 0.12, radius: 4 });
   }
-  // placed pieces, back-to-front so nearer rows overlap farther ones
-  for (const z of ["wall", "altar", "floor"]) {
+  // placed pieces (far row drawn after near in the array, but near sits lower so overlap reads fine)
+  for (const z of ["wall", "altar"]) {
     (A[z] || []).forEach((id, i) => { const s = ALTAR_SLOTS[z][i]; if (s) drawDecorAt(id, s.x, s.y, s.s); });
   }
   // header bar (legible over the art)
   drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: 34, color: rgb(16, 12, 22), opacity: 0.6 });
   drawText({ text: "Your Altar", pos: vec2(10, 8), size: 14, color: rgb(255, 225, 150) });
-  drawText({ text: "Wall " + A.wall.length + "/" + ALTAR_CAP.wall + "   Altar " + A.altar.length + "/" + ALTAR_CAP.altar + "   Floor " + A.floor.length + "/" + ALTAR_CAP.floor,
-             pos: vec2(CANVAS_W / 2 - 6, 12), size: 8, color: rgb(205, 195, 225), anchor: "center" });
+  drawText({ text: "Wall " + A.wall.length + "/" + ALTAR_CAP.wall + "    Tools " + A.altar.length + "/" + ALTAR_CAP.altar,
+             pos: vec2(CANVAS_W / 2 - 6, 12), size: 9, color: rgb(205, 195, 225), anchor: "center" });
   // palette strip
   drawRect({ pos: vec2(0, ALTAR_VIEW_H), width: CANVAS_W, height: CANVAS_H - ALTAR_VIEW_H, color: rgb(28, 22, 38) });
   drawRect({ pos: vec2(6, ALTAR_VIEW_H + 4), width: CANVAS_W - 12, height: 54, color: rgb(40, 34, 52), radius: 8, outline: { color: rgb(140, 112, 60), width: 1 } });
-  if (!ownedDecor().length) drawText({ text: "Buy pieces at the Furnishings shop to decorate.", pos: vec2(CANVAS_W / 2, ALTAR_VIEW_H + 30), size: 10, color: rgb(170, 160, 185), anchor: "center" });
+  if (!ownedDecor().length) drawText({ text: "Buy charms & ritual tools at the Furnishings shop.", pos: vec2(CANVAS_W / 2, ALTAR_VIEW_H + 30), size: 10, color: rgb(170, 160, 185), anchor: "center" });
   drawText({ text: "tap a piece to place it · tap a placed piece to remove", pos: vec2(CANVAS_W / 2, CANVAS_H - 10), size: 8, color: rgb(150, 142, 168), anchor: "center" });
   for (const b of altarRegions()) {
     if (b.type === "chip") {
@@ -605,6 +606,148 @@ function drawDormAltar(o) {
   drawRect({ pos: vec2(baseX - 12, baseY - 12), width: 4, height: 12, color: rgb(96, 72, 50) });
   drawRect({ pos: vec2(baseX + 8, baseY - 12), width: 4, height: 12, color: rgb(96, 72, 50) });
   (state.altarSlots.altar || []).slice(0, 4).forEach((id, i) => drawDecorAt(id, baseX - 9 + i * 6, baseY - 13, 0.42));
+}
+
+/* ---------- Dorm room decorating ----------
+   A bottom palette of owned furniture (the "floor" pieces — bookshelf, plant,
+   lantern, etc.). Tap a chip to select a piece, then tap a tile to place it.
+   Tap a placed piece to select it, then Rotate / Remove, or tap another tile to
+   move it. Cosmetic — nothing blocks walking. */
+function decorOwned() {
+  return DECOR_ORDER.filter((id) => (state.furniture[id] || 0) > 0 && decorZone(id) === "floor");
+}
+const DECOR_PER = 7;
+function decorRows() {
+  const rows = [], band = CANVAS_H - 64;
+  rows.push({ type: "done", x: CANVAS_W - 46, y: band + 3, w: 42, h: 15 });
+  if (decorating.pick != null) {
+    rows.push({ type: "rotate", x: CANVAS_W - 96, y: band + 3, w: 46, h: 15 });
+    rows.push({ type: "remove", x: CANVAS_W - 150, y: band + 3, w: 50, h: 15 });
+  }
+  const owned = decorOwned(), pages = Math.max(1, Math.ceil(owned.length / DECOR_PER));
+  decorating.page = Math.max(0, Math.min(decorating.page || 0, pages - 1));
+  if (pages > 1) {
+    rows.push({ type: "pprev", x: 4, y: band + 22, w: 18, h: 38 });
+    rows.push({ type: "pnext", x: CANVAS_W - 22, y: band + 22, w: 18, h: 38 });
+  }
+  let x = pages > 1 ? 26 : 8;
+  for (const id of owned.slice(decorating.page * DECOR_PER, decorating.page * DECOR_PER + DECOR_PER)) {
+    rows.push({ type: "chip", id, x, y: band + 22, w: 40, h: 38 });
+    x += 46;
+  }
+  return rows;
+}
+function drawDecorate() {
+  const band = CANVAS_H - 64;
+  const focus = decorating.pick != null ? (state.dormDecor[decorating.pick] || {}).id : decorating.sel;
+  if (focus && ITEMS[focus] && ITEMS[focus].lore) {
+    drawRect({ pos: vec2(0, band - 30), width: CANVAS_W, height: 30, color: rgb(20, 16, 30), opacity: 0.92 });
+    drawText({ text: ITEMS[focus].name + " — " + ITEMS[focus].lore, pos: vec2(6, band - 27), size: 9,
+               color: rgb(220, 214, 240), width: CANVAS_W - 12 });
+  }
+  drawRect({ pos: vec2(0, band), width: CANVAS_W, height: 64, color: rgb(30, 24, 44) });
+  let tip;
+  if (decorating.pick != null) {
+    const o = state.dormDecor[decorating.pick];
+    tip = "Selected " + (ITEMS[o.id] ? ITEMS[o.id].name : "piece") + " — Rotate / Remove, or tap a tile to move it.";
+  } else if (decorating.sel) {
+    tip = "Placing " + ITEMS[decorating.sel].name + " — tap an open floor tile.";
+  } else {
+    tip = "Tap a piece, then a tile. Tap a placed piece to edit it.";
+  }
+  drawText({ text: tip, pos: vec2(6, band + 5), size: 9, color: rgb(225, 216, 244), width: CANVAS_W - 158 });
+  if (!decorOwned().length) {
+    drawText({ text: "No furniture yet — buy some at the Furnishings shop (Market Street).",
+               pos: vec2(6, band + 30), size: 10, color: rgb(180, 170, 200), width: CANVAS_W - 16 });
+  }
+  const labels = { done: "Done", rotate: "Rotate", remove: "Remove", pprev: "<", pnext: ">" };
+  for (const b of decorRows()) {
+    if (b.type === "chip") {
+      const it = ITEMS[b.id], seld = decorating.sel === b.id;
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(44, 36, 58), radius: 5,
+                 outline: { color: seld ? rgb(255, 210, 130) : rgb(90, 78, 110), width: seld ? 2 : 1 } });
+      if (ready(it.sprite)) drawSprite({ sprite: it.sprite, anchor: "center", pos: vec2(b.x + b.w / 2, b.y + 15), width: 22, height: 22 });
+      else drawRect({ pos: vec2(b.x + b.w / 2, b.y + 15), width: 16, height: 16, anchor: "center", color: col(it.color), radius: 3 });
+      drawText({ text: "x" + state.furniture[b.id], pos: vec2(b.x + b.w / 2, b.y + 28), size: 9, color: rgb(225, 222, 235), anchor: "center" });
+    } else {
+      const accent = b.type === "remove" ? rgb(220, 150, 150) : rgb(180, 150, 210);
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(58, 48, 74), radius: 4, outline: { color: accent, width: 1 } });
+      drawText({ text: labels[b.type], pos: vec2(b.x + b.w / 2, b.y + 3), size: b.type.startsWith("p") ? 12 : 10,
+                 color: rgb(232, 224, 248), anchor: "center" });
+    }
+  }
+}
+function handleDecorateTap(m) {
+  for (const b of decorRows()) {
+    if (!pointIn(m, b)) continue;
+    if (b.type === "done") { decorating = null; save(); }
+    else if (b.type === "pprev") decorating.page = Math.max(0, (decorating.page || 0) - 1);
+    else if (b.type === "pnext") decorating.page = (decorating.page || 0) + 1;
+    else if (b.type === "chip") { decorating.sel = (decorating.sel === b.id ? null : b.id); decorating.pick = null; }
+    else if (b.type === "rotate" && decorating.pick != null) {
+      const o = state.dormDecor[decorating.pick]; o.rot = ((o.rot || 0) + 1) % 4; save();
+    } else if (b.type === "remove" && decorating.pick != null) {
+      const o = state.dormDecor[decorating.pick];
+      state.furniture[o.id] = (state.furniture[o.id] || 0) + 1;
+      state.dormDecor.splice(decorating.pick, 1);
+      decorating.pick = null; toast("Picked up"); save();
+    }
+    return;
+  }
+  if (m.y < ORIGIN_Y || m.y >= CANVAS_H - 64) return;
+  const gx = Math.floor(m.x / TILE), gy = Math.floor((m.y - ORIGIN_Y) / TILE);
+  if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return;
+  const r = ROOMS.dorm;
+  const hit = (state.dormDecor || []).findIndex((d) => d.gx === gx && d.gy === gy);
+  if (hit >= 0 && hit !== decorating.pick) { decorating.pick = hit; decorating.sel = null; return; }
+  if (hit >= 0) return;
+  if (decorating.pick != null) {
+    const o = state.dormDecor[decorating.pick];
+    if (!validDecorTile(r, gx, gy, ITEMS[o.id], decorating.pick)) { toast("Can't place there"); return; }
+    o.gx = gx; o.gy = gy; save(); return;
+  }
+  const id = decorating.sel;
+  if (!id || (state.furniture[id] || 0) <= 0) return;
+  if (!validDecorTile(r, gx, gy, ITEMS[id], -1)) { toast("Can't place there"); return; }
+  const it = ITEMS[id];
+  state.dormDecor.push({ id, sprite: it.sprite, gx, gy, flat: !!it.flat, wall: !!it.wall, rot: 0 });
+  state.furniture[id] -= 1;
+  if (state.furniture[id] <= 0) { delete state.furniture[id]; if (decorating.sel === id) decorating.sel = null; }
+  save();
+}
+// A legal home for furniture: open floor (no wall/door/inter/built-in decor) and
+// free of other placed pieces.
+function validDecorTile(r, gx, gy, it, selfIdx) {
+  const occ = (state.dormDecor || []).findIndex((d) => d.gx === gx && d.gy === gy);
+  if (occ >= 0 && occ !== selfIdx) return false;
+  if (r.grid[gy][gx] === "#" || doorAt(r, gx, gy) || interAt(r, gx, gy) || decorAt(r, gx, gy)) return false;
+  return true;
+}
+// Draw one placed dorm piece (sprite if we have art, else a tidy placeholder),
+// with rotation; in Decorate mode add a selection outline + a small label.
+function drawPlacedDecor(o, idx) {
+  const it = ITEMS[o.id] || {}, flat = it.flat, ang = (o.rot || 0) * 90;
+  const cxp = cx(o.gx);
+  if (ready(o.sprite)) {
+    if (flat) drawSprite({ sprite: o.sprite, anchor: "center", pos: vec2(cxp, cy(o.gy)), width: PROP_DRAW, height: PROP_DRAW, angle: ang });
+    else      drawSprite({ sprite: o.sprite, anchor: "bot", pos: vec2(cxp, ORIGIN_Y + (o.gy + 1) * TILE), width: PROP_DRAW, height: PROP_DRAW, angle: ang });
+  } else {
+    if (flat) {
+      drawRect({ pos: vec2(cxp, cy(o.gy)), anchor: "center", width: 30, height: 16,
+                 color: col(it.color), radius: 4, outline: { color: col(it.color, 0.6), width: 2 } });
+    } else {
+      drawRect({ pos: vec2(cxp, ORIGIN_Y + (o.gy + 1) * TILE - 3), anchor: "bot", width: 18, height: 26,
+                 color: col(it.color), radius: 4, outline: { color: col(it.color, 0.6), width: 2 } });
+    }
+  }
+  if (decorating) {
+    const picked = decorating.pick === idx;
+    drawRect({ pos: vec2(o.gx * TILE + 1, ORIGIN_Y + o.gy * TILE + 1), width: TILE - 2, height: TILE - 2,
+               color: rgb(0, 0, 0), opacity: 0,
+               outline: { color: picked ? rgb(255, 220, 130) : rgb(200, 190, 220), width: picked ? 2 + pulse() * 2 : 1 }, radius: 4 });
+    drawText({ text: it.name || "", pos: vec2(cxp, ORIGIN_Y + o.gy * TILE + TILE - 1), size: 7, anchor: "center",
+               width: TILE * 2.4, color: rgb(235, 228, 248) });
+  }
 }
 
 /* ---------- Plant-a-seed chooser ---------- */
