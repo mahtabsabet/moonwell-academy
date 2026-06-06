@@ -1091,18 +1091,23 @@ const ROOMS = {
     name: "Market Street",
     floor: [80, 72, 62],
     grid: STD_GRID,
+    // a row of shop storefronts along the top; each interior door fronts a shop
     doors: [
-      { gx: 5,  gy: 11, to: "village",    atGx: 5, atGy: 1,  label: "Square v" },
-      { gx: 2,  gy: 0,  to: "gem_shop",   atGx: 5, atGy: 10, label: "Gems ^" },
-      { gx: 8,  gy: 0,  to: "seed_shop",  atGx: 5, atGy: 10, label: "Seeds ^" },
-      { gx: 0,  gy: 4,  to: "tools_shop", atGx: 5, atGy: 10, label: "Tools <" },
-      { gx: 11, gy: 4,  to: "fruit_shop", atGx: 5, atGy: 10, label: "Fruit >" },
-      { gx: 5,  gy: 0,  to: "furnishings", atGx: 5, atGy: 10, label: "Decor ^" },
+      { gx: 5,  gy: 11, to: "village",     atGx: 5, atGy: 1,  label: "Square v" },
+      { gx: 2,  gy: 2,  to: "gem_shop",    atGx: 5, atGy: 10, label: "" },
+      { gx: 4,  gy: 2,  to: "seed_shop",   atGx: 5, atGy: 10, label: "" },
+      { gx: 6,  gy: 2,  to: "furnishings", atGx: 5, atGy: 10, label: "" },
+      { gx: 8,  gy: 2,  to: "tools_shop",  atGx: 5, atGy: 10, label: "" },
+      { gx: 10, gy: 2,  to: "fruit_shop",  atGx: 5, atGy: 10, label: "" },
     ],
     inters: [],
     decor: [
-      { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
-      { gx: 10, gy: 1,  kind: "lantern", size: 26 },
+      // storefront facades (non-solid; the door tile sits in each doorway)
+      { gx: 2,  gy: 2, kind: "front_gem",     w: 65, h: 90, solid: false },
+      { gx: 4,  gy: 2, kind: "front_seed",    w: 62, h: 92, solid: false },
+      { gx: 6,  gy: 2, kind: "front_furnish", w: 62, h: 86, solid: false },
+      { gx: 8,  gy: 2, kind: "front_tools",   w: 62, h: 92, solid: false },
+      { gx: 10, gy: 2, kind: "front_fruit",   w: 58, h: 70, solid: false },
       // market stall goods laid out in the square
       { gx: 3, gy: 8, kind: "item_health_potion", size: 24, solid: false },
       { gx: 4, gy: 8, kind: "item_apple",         size: 24, solid: false },
@@ -1117,7 +1122,7 @@ const ROOMS = {
     name: "Furnishings",
     floor: [70, 58, 72],
     grid: STD_GRID,
-    doors: [ { gx: 5, gy: 11, to: "market", atGx: 5, atGy: 1, label: "Street v" } ],
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 6,  atGy: 3, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Furnisher", color: [180, 150, 200], action: "shop", shop: "furnishings" } ],
     decor: [
       // furniture showroom display
@@ -1137,7 +1142,7 @@ const ROOMS = {
     name: "Gem Shop",
     floor: [60, 56, 80],
     grid: STD_GRID,
-    doors: [ { gx: 5, gy: 11, to: "market", atGx: 2, atGy: 1, label: "Street v" } ],
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 2,  atGy: 3, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gemcutter", color: [160, 130, 215], action: "shop", shop: "gem" } ],
     decor: [
       // gems on display along the back counter
@@ -1156,7 +1161,7 @@ const ROOMS = {
     name: "Seed & Garden",
     floor: [54, 64, 48],
     grid: STD_GRID,
-    doors: [ { gx: 5, gy: 11, to: "market", atGx: 8, atGy: 1, label: "Street v" } ],
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 4,  atGy: 3, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gardener", color: [120, 180, 90], action: "shop", shop: "seed" } ],
     decor: [
       // potted herbs on display
@@ -1175,7 +1180,7 @@ const ROOMS = {
     name: "Magical Tools",
     floor: [58, 52, 66],
     grid: STD_GRID,
-    doors: [ { gx: 5, gy: 11, to: "market", atGx: 1, atGy: 4, label: "Street v" } ],
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 8,  atGy: 3, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Toolwright", color: [205, 170, 120], action: "shop", shop: "tools" } ],
     decor: [
       // tools on display
@@ -1193,7 +1198,7 @@ const ROOMS = {
     name: "Fruit Stall",
     floor: [72, 60, 52],
     grid: STD_GRID,
-    doors: [ { gx: 5, gy: 11, to: "market", atGx: 10, atGy: 4, label: "Street v" } ],
+    doors: [ { gx: 5, gy: 11, to: "market", atGx: 10, atGy: 3, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Grocer", color: [210, 120, 100], action: "shop", shop: "fruit" } ],
     decor: [
       // fruit on display
