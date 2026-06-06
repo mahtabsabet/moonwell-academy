@@ -786,7 +786,8 @@ function drawMeditate() {
 function bosHerbPages() { return HERB_ORDER.filter((h) => state.herbsKnown[h]); }
 function bosCrystalPages() { return CRYSTAL_ORDER.filter((c) => state.crystalsKnown[c]); }
 function bosCreaturePages() { return CREATURE_ORDER.filter((c) => state.creaturesKnown[c]); }
-function bosTotalPages() { return 1 + bosHerbPages().length + bosCrystalPages().length + bosCreaturePages().length; }
+function bosAstroPages() { return ASTRO_ORDER.filter((a) => state.astronomyKnown[a]); }
+function bosTotalPages() { return 1 + bosHerbPages().length + bosCrystalPages().length + bosCreaturePages().length + bosAstroPages().length; }
 function bosButtons() {
   const y = CANVAS_H - 90, h = 26;
   return [
@@ -818,13 +819,14 @@ function drawJournal() {                       // (the Book of Shadows)
   const px = bx + 12, py = by + 12, pw = bw - 24, ph = bh - 24;
   drawRect({ pos: vec2(px, py), width: pw, height: ph, color: rgb(236, 224, 194), radius: 4 });
 
-  const herbs = bosHerbPages(), crystals = bosCrystalPages(), creatures = bosCreaturePages();
+  const herbs = bosHerbPages(), crystals = bosCrystalPages(), creatures = bosCreaturePages(), astro = bosAstroPages();
   if (bosPage > bosTotalPages() - 1) bosPage = bosTotalPages() - 1;
   const i = bosPage - 1;
   if (bosPage === 0) drawBosOverview(px, py, pw, ph);
   else if (i < herbs.length) drawHerbPage(herbs[i], px, py, pw, ph);
   else if (i - herbs.length < crystals.length) drawCrystalPage(crystals[i - herbs.length], px, py, pw, ph);
-  else drawCreaturePage(creatures[i - herbs.length - crystals.length], px, py, pw, ph);
+  else if (i - herbs.length - crystals.length < creatures.length) drawCreaturePage(creatures[i - herbs.length - crystals.length], px, py, pw, ph);
+  else drawAstroPage(astro[i - herbs.length - crystals.length - creatures.length], px, py, pw, ph);
 
   // page buttons
   for (const b of bosButtons()) {
@@ -857,10 +859,12 @@ function drawBosOverview(px, py, pw, ph) {
   const studied = bosHerbPages().length;
   drawText({ text: "Herbal:  " + studied + " of " + HERB_ORDER.length + " plants studied.", pos: vec2(x, y),
              size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
-  const stones = bosCrystalPages().length, beasts = bosCreaturePages().length;
+  const stones = bosCrystalPages().length, beasts = bosCreaturePages().length, skies = bosAstroPages().length;
   drawText({ text: "Stones:  " + stones + " of " + CRYSTAL_ORDER.length + " · Beasts:  " + beasts + " of " + CREATURE_ORDER.length,
              pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
-  drawText({ text: (studied || stones || beasts) ? "Turn the page for plants, stones & beasts." : "Attend class to fill these pages.",
+  drawText({ text: "Heavens:  " + skies + " of " + ASTRO_ORDER.length + " charted.",
+             pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 58, 110) }); y += 16;
+  drawText({ text: (studied || stones || beasts || skies) ? "Turn the page for plants, stones, beasts & stars." : "Attend class to fill these pages.",
              pos: vec2(x, y), size: 12, font: hf(), color: rgb(74, 52, 34), width: pw - 28 });
 
   // autosave note + reset button
@@ -939,6 +943,25 @@ function drawCreaturePage(id, px, py, pw, ph) {
   drawText({ text: "Settle it by:  " + approach, pos: vec2(x, y), size: 13, font: hf(), color: HDR, width: pw - 28, lineSpacing: 2 }); y += 30;
   if (c.drop) { drawText({ text: "Leaves:  " + (c.drop === "stone" ? "a bit of ore" : ITEMS[c.drop].name), pos: vec2(x, y), size: 13, font: hf(), color: INK }); y += 20; }
   drawText({ text: '"' + c.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
+}
+
+function drawAstroPage(id, px, py, pw, ph) {
+  const a = ASTRONOMY[id];
+  const x = px + 16, INK = rgb(74, 52, 34), HDR = rgb(96, 58, 110);
+  let y = py + 16;
+  drawText({ text: a.name, pos: vec2(px + pw / 2, y), size: 22, font: hf(), color: HDR, anchor: "center" }); y += 24;
+  drawText({ text: a.sub, pos: vec2(px + pw / 2, y), size: 12, font: hf(), color: INK, anchor: "center", width: pw - 28 }); y += 20;
+  // framed celestial illustration (reuses existing art; colour block fallback)
+  const iy = y + 30;
+  drawRect({ pos: vec2(px + pw / 2, iy), width: 66, height: 66, anchor: "center", color: rgb(228, 214, 180),
+             radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
+  if (a.icon && ready(a.icon)) drawSprite({ sprite: a.icon, pos: vec2(px + pw / 2, iy), width: 56, height: 56, anchor: "center" });
+  else drawRect({ pos: vec2(px + pw / 2, iy), width: 42, height: 42, anchor: "center", color: rgb(60, 64, 110), radius: 6,
+                  outline: { color: rgb(220, 225, 255), width: 1 } });
+  y = iy + 44;
+  drawText({ text: "In the sky:  " + a.sky, pos: vec2(x, y), size: 13, font: hf(), color: INK, width: pw - 28, lineSpacing: 2 }); y += 44;
+  drawText({ text: "In the craft:  " + a.craft, pos: vec2(x, y), size: 13, font: hf(), color: HDR, width: pw - 28, lineSpacing: 2 }); y += 48;
+  drawText({ text: '"' + a.lore + '"', pos: vec2(x, y), size: 13, font: hf(), color: rgb(96, 70, 110), width: pw - 28, lineSpacing: 2 });
 }
 
 /* ============================================================================
