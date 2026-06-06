@@ -367,7 +367,6 @@ const ITEMS = {
 // Order Prof. Beryl teaches the stones; each Crystals lesson adds a Book of
 // Shadows page and a sample stone to your bag.
 const CRYSTAL_ORDER = ["amethyst", "clear_quartz", "rose_quartz", "citrine", "black_tourmaline", "moonstone"];
-const STONE_SELL = 12;  // fallback stone price if an item lacks its own
 
 // Furniture catalogue order (homely → altar tools → wall hangings), used by
 // the Furnishings shop and the dorm Decorate palette.
@@ -1163,22 +1162,10 @@ const ROOMS = {
 // The greenhouse's permanent fixtures (Prof. Sage); pots are appended per herb.
 const GH_BASE = ROOMS.greenhouse.inters.slice();
 
-/* ---------- ART ASSETS (drop pixel-art PNGs in here) ----------
-   Paste a base64 data URI as the value to replace a placeholder rectangle —
-   that's the ONLY change needed per asset. Keys left as "" keep their
-   placeholder. Expected size: 32x32 unless noted. The renderer draws the
-   sprite when present and falls back to the colored placeholder otherwise.
-
-   Keys the game looks for:
-     Tiles  : floor_dorm, floor_hallway, floor_classroom, floor_greenhouse,
-              floor_village, wall_dorm, wall_hallway, wall_classroom,
-              wall_greenhouse, wall_village, door
-     People : player (32x32; later: player_up/down/left/right for facing),
-              teacher, shop, friend
-     Props  : bed, cauldron, herb, cauldron_big (96-128px, brewing screen)
-     Items  : item_lavender, item_spring_water, item_lavender_calm_tonic
-*/
-  // ASSETS object is defined in assets.js (loaded via <script src> before this script).
+  /* ART ASSETS: the `const ASSETS` map of base64 PNG data URIs lives in
+     assets.js, loaded via <script src> before this script. To add or swap a
+     sprite, set ASSETS[key] there; the renderer auto-swaps sprite-for-
+     placeholder when ready(key) is true. */
 
 /* ============================================================================
    ENGINE SETUP — Kaboom is used as a scaling canvas + input + game loop.
@@ -3045,13 +3032,6 @@ const PARCH   = rgb(236, 224, 194); // page colour
 const PARCH_D = rgb(214, 198, 162); // page shadow / ruled lines
 
 // one small framed illustration (sprite if loaded, else a coloured chip)
-function bookIllo(cx0, cy0, size, spriteKey, fallbackColor) {
-  drawRect({ pos: vec2(cx0, cy0), width: size + 10, height: size + 10, anchor: "center",
-             color: rgb(228, 214, 180), radius: 4, outline: { color: rgb(150, 120, 80), width: 2 } });
-  if (ready(spriteKey)) drawSprite({ sprite: spriteKey, pos: vec2(cx0, cy0), width: size, height: size, anchor: "center" });
-  else drawRect({ pos: vec2(cx0, cy0), width: size, height: size, anchor: "center", color: col(fallbackColor), radius: 4 });
-}
-
 // faint ruled lines to sell the "written page" look
 function ruledLines(px, py, pw, ph) {
   for (let ly = py + 18; ly < py + ph - 6; ly += 16) {
