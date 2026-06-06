@@ -339,6 +339,47 @@ const DECOR_ORDER = [
   "deco_moonphases", "deco_tapestry", "deco_herbs", "deco_wreath", "deco_horseshoe", "deco_ladder", "deco_botanical", "deco_starchart",
 ];
 
+/* ---------- Altar decoration ----------
+   The dorm altar opens a close-up "Decorate Altar" screen with three zones:
+   wall charms (hung), the altar surface (ritual tools), and the floor around it
+   (homely furniture). `zone` sorts each piece; `h` is its on-screen height in px
+   so everything sits to scale (a salt dish is tiny, a besom is tall). */
+const DECOR_META = {
+  // floor — homely furniture (largest)
+  deco_rug:        { zone: "floor", h: 38, flat: true },
+  deco_table:      { zone: "floor", h: 34 },
+  deco_bookshelf:  { zone: "floor", h: 52 },
+  deco_plant:      { zone: "floor", h: 34 },
+  deco_lantern:    { zone: "floor", h: 32 },
+  deco_barrel:     { zone: "floor", h: 32 },
+  deco_orb:        { zone: "floor", h: 28 },
+  deco_telescope:  { zone: "floor", h: 50 },
+  // altar surface — ritual tools (to scale)
+  deco_altarcloth: { zone: "altar", h: 30, flat: true },
+  deco_pentacle:   { zone: "altar", h: 22, flat: true },
+  deco_chalice:    { zone: "altar", h: 20 },
+  deco_athame:     { zone: "altar", h: 17 },
+  deco_wand:       { zone: "altar", h: 22 },
+  deco_censer:     { zone: "altar", h: 20 },
+  deco_besom:      { zone: "altar", h: 40 },
+  deco_bell:       { zone: "altar", h: 16 },
+  deco_cauldron:   { zone: "altar", h: 24 },
+  deco_mirror:     { zone: "altar", h: 22 },
+  deco_salt:       { zone: "altar", h: 12 },
+  deco_offering:   { zone: "altar", h: 14 },
+  // wall — hung charms
+  deco_moonphases: { zone: "wall", h: 26 },
+  deco_tapestry:   { zone: "wall", h: 36 },
+  deco_herbs:      { zone: "wall", h: 28 },
+  deco_wreath:     { zone: "wall", h: 28 },
+  deco_horseshoe:  { zone: "wall", h: 22 },
+  deco_ladder:     { zone: "wall", h: 32 },
+  deco_botanical:  { zone: "wall", h: 26 },
+  deco_starchart:  { zone: "wall", h: 28 },
+};
+const ALTAR_CAP = { wall: 2, altar: 8, floor: 4 };   // how many fit in each zone
+const decorZone = (id) => (DECOR_META[id] || {}).zone || "altar";
+
 /* ---------- Village shops ----------
    Each shop's keeper opens a browse/buy panel. `seeds:true` lists seed packets
    for herbs you've studied; `buy` lists fixed goods (price from item.cost, or
@@ -827,7 +868,7 @@ const ROOMS = {
       { gx: 2, gy: 9, kind: "bed",  name: "Bed",     color: [90, 120, 200], action: "sleep" },
       { gx: 9, gy: 9, kind: "desk", name: "Book of Shadows", color: [150, 130, 90], action: "journal" },
       { gx: 7, gy: 9, kind: "timetable", name: "Timetable", color: [190, 170, 130], action: "timetable" },
-      { gx: 4, gy: 9, kind: "decorate", name: "Decorate", color: [180, 150, 200], action: "decorate" },
+      { gx: 4, gy: 9, kind: "altar", name: "Altar", color: [150, 120, 175], action: "altar" },
     ],
     // decor: non-interactive props. solid:true blocks walking (default);
     // flat:true lays it on the floor (e.g. rugs) so you can walk over it.
