@@ -80,10 +80,11 @@ onDraw(() => {
   for (const o of (r.decor || [])) {
     if (!ready(o.kind)) continue;
     const s = o.size || PROP_DRAW;
+    const w = o.w || s, h = o.h || s;   // o.w/o.h allow non-square props (e.g. storefronts)
     if (o.flat) {
-      drawSprite({ sprite: o.kind, anchor: "center", pos: vec2(cx(o.gx), cy(o.gy)), width: s, height: s });
+      drawSprite({ sprite: o.kind, anchor: "center", pos: vec2(cx(o.gx), cy(o.gy)), width: w, height: h });
     } else {
-      drawSprite({ sprite: o.kind, anchor: "bot", pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: s, height: s });
+      drawSprite({ sprite: o.kind, anchor: "bot", pos: vec2(cx(o.gx), ORIGIN_Y + (o.gy + 1) * TILE), width: w, height: h });
     }
   }
 
