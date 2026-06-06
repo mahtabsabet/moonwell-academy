@@ -647,6 +647,102 @@ const SUBJECTS = {
   },
 };
 
+/* ---------- Astronomy syllabus ----------
+   Astronomy & Lunar Studies is progressive (like Herbology/Crystals/Creatures):
+   Prof. Vega teaches one topic per visit, each adding a Book of Shadows page.
+   `icon` reuses existing celestial art; `sky`/`craft`/`lore` fill the page. */
+const ASTRONOMY = {
+  moon_phases: {
+    name: "The Eight Phases", sub: "New · Waxing · Full · Waning", icon: "moon_phases",
+    sky: "The Moon rounds new to full to new about every 29 and a half days, lit from the side by the Sun.",
+    craft: "Wax to draw in and begin; wane to release and banish; charge water, stones and tools at the Full Moon.",
+    lore: "As above the tides, so below the heart.",
+    lesson: [
+      { s: "Prof. Vega", t: "The Moon makes her round in roughly twenty-nine and a half days — one synodic moonth." },
+      { s: "Prof. Vega", t: "New and waxing is for beginnings; full for power; waning for release; the dark moon for rest." },
+      { s: "Prof. Vega", t: "Leave a jar of water out under the Full Moon and you'll have moon water by morning." },
+    ],
+  },
+  planets: {
+    name: "The Seven Wanderers", sub: "Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn", icon: "telescope",
+    sky: "Seven lights the ancients saw move against the fixed stars: the Sun and Moon, and five planets.",
+    craft: "Each rules a weekday and a virtue — time a working to its planet for an easier current.",
+    lore: "Mon-Moon, Tue-Mars, Wed-Mercury, Thu-Jupiter, Fri-Venus, Sat-Saturn, Sun-Sun.",
+    lesson: [
+      { s: "Prof. Vega", t: "Before telescopes, seven 'wandering stars' moved against the rest — the classical planets." },
+      { s: "Prof. Vega", t: "Each lends its nature: Mars for courage, Venus for love, Mercury for words, Jupiter for luck, Saturn for endings." },
+      { s: "Prof. Vega", t: "And each governs a day — work love magic on Friday (Venus), study and letters on Wednesday (Mercury)." },
+    ],
+  },
+  zodiac: {
+    name: "The Wheel of the Zodiac", sub: "Twelve signs, four elements", icon: "star_chart",
+    sky: "The Sun walks a band of twelve constellations across the year — the ecliptic, or zodiac.",
+    craft: "Each sign carries an element — Fire, Earth, Air, Water. Note the Moon's sign for the day's mood.",
+    lore: "Aries to Pisces, the year turns through fire, earth, air and water, thrice over.",
+    lesson: [
+      { s: "Prof. Vega", t: "The Sun's yearly path, the ecliptic, passes through twelve signs — the zodiac." },
+      { s: "Prof. Vega", t: "They sort into four elements, three signs each: Fire, Earth, Air and Water." },
+      { s: "Prof. Vega", t: "Watch which sign the Moon is in — a Water moon for feeling, an Air moon for clear thought." },
+    ],
+  },
+  north_star: {
+    name: "Polaris, the Lodestar", sub: "Finding north by night", icon: "telescope",
+    sky: "Polaris sits almost over the north pole, so it barely stirs while the whole sky wheels around it.",
+    craft: "Follow the two pointer stars at the end of the Plough's bowl straight to it — and you'll always find north.",
+    lore: "The still point the whole sky turns upon.",
+    lesson: [
+      { s: "Prof. Vega", t: "One star scarcely moves all night: Polaris, the North Star, almost above the pole." },
+      { s: "Prof. Vega", t: "Find the Plough — the Great Bear's tail and bowl — and its two end stars point right at her." },
+      { s: "Prof. Vega", t: "Lost in the dark? Polaris is north. Travellers and witches alike have steered by her." },
+    ],
+  },
+  constellations: {
+    name: "Reading the Constellations", sub: "Pictures in the stars", icon: "star_chart",
+    sky: "The Great Bear, Orion the Hunter, Cassiopeia's W — patterns the old folk named and storied.",
+    craft: "They keep the seasons: Orion rules winter nights; the Summer Triangle, the warm months.",
+    lore: "Every people drew its own myths upon the same scattered lights.",
+    lesson: [
+      { s: "Prof. Vega", t: "Constellations are figures we trace among the stars — bears, hunters, queens." },
+      { s: "Prof. Vega", t: "They double as a calendar: Orion's belt means deep winter; the Summer Triangle, high summer." },
+      { s: "Prof. Vega", t: "Learn a handful and the night sky becomes both clock and map." },
+    ],
+  },
+  eclipses: {
+    name: "Eclipses & Omens", sub: "When Sun or Moon is swallowed", icon: "moon_phases",
+    sky: "A solar eclipse falls at the New Moon as she crosses the Sun; a lunar eclipse at the Full, in Earth's shadow.",
+    craft: "Old lore names them potent, unsettling thresholds — many witches rest and observe rather than cast.",
+    lore: "A door opens; step through it gently.",
+    lesson: [
+      { s: "Prof. Vega", t: "When the Moon slips exactly between us and the Sun, she eclipses it — by day, at the New Moon." },
+      { s: "Prof. Vega", t: "When Earth's shadow falls across the Full Moon she reddens — the 'blood moon' of a lunar eclipse." },
+      { s: "Prof. Vega", t: "Eclipses were read as omens of change. Many prefer to watch and reflect, not work." },
+    ],
+  },
+  wheel_of_year: {
+    name: "The Wheel of the Year", sub: "Solstices, equinoxes & cross-quarters", icon: "star_chart",
+    sky: "The Sun's height marks the turning year: longest day at midsummer, longest night at midwinter, balance between.",
+    craft: "Eight festivals — the sabbats — mark the spokes: the two solstices, two equinoxes, and the cross-quarter days.",
+    lore: "The year is a wheel; every dark turns again toward light.",
+    lesson: [
+      { s: "Prof. Vega", t: "Track the Sun and the year shows its joints: two solstices and two equinoxes." },
+      { s: "Prof. Vega", t: "Midwinter is the longest night, midsummer the longest day; the equinoxes balance dark and light." },
+      { s: "Prof. Vega", t: "Between them fall the cross-quarter days — eight festivals in all, the Wheel of the Year." },
+    ],
+  },
+  comets_stars: {
+    name: "Comets & Falling Stars", sub: "Wanderers and wishes", icon: "telescope",
+    sky: "Most 'falling stars' are specks of dust burning up; comets are icy visitors trailing long bright tails.",
+    craft: "Catch a shooting star and make your wish — a folk charm for fixing an intention in an instant.",
+    lore: "Quick — before the light goes out.",
+    lesson: [
+      { s: "Prof. Vega", t: "A shooting star is no star at all, but a grain of dust burning bright as it falls." },
+      { s: "Prof. Vega", t: "Comets swing in on long orbits, growing glowing tails — once feared as omens, now welcomed." },
+      { s: "Prof. Vega", t: "Tradition says a wish made on a falling star takes flight — a fine way to set an intention." },
+    ],
+  },
+};
+const ASTRO_ORDER = ["moon_phases", "planets", "zodiac", "north_star", "constellations", "eclipses", "wheel_of_year", "comets_stars"];
+
 /* ---------- Calendar & timetable ----------
    A 7-day week. The timetable maps each weekday to the classes offered that day;
    a class only teaches on its scheduled days. Sleeping advances the day. Weekends
