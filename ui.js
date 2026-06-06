@@ -490,15 +490,20 @@ function handleShopTap(m) {
 }
 
 /* ---------- Decorate Altar (close-up) ----------
-   Tap the dorm altar to open a close-up with three zones — wall charms, the
-   altar surface (ritual tools) and the floor around it. Tap a palette piece to
-   place it (each zone is capped); tap a placed piece to take it back. Every
-   piece draws at its DECOR_META height, so a salt dish is tiny and a besom tall. */
+   Tapping the dorm altar opens this angled-down close-up. Pieces sit in three
+   zones on the altar art — charms on the wall, ritual tools on the surface
+   (a near row drawn larger, a far row smaller for depth) and furniture on the
+   floor in front. Tap a palette piece to place it; tap a placed piece to remove
+   it. Every piece draws at its DECOR_META height × the slot scale, so a salt
+   dish stays tiny and a besom towers. */
+const ALTAR_VIEW_H = 432;   // the altar art fills the top of the screen; palette below
 const ALTAR_SLOTS = {
-  wall:  [ { x: 150, y: 156 }, { x: 234, y: 156 } ],
-  altar: [ { x: 108, y: 256 }, { x: 132, y: 256 }, { x: 156, y: 256 }, { x: 180, y: 256 },
-           { x: 204, y: 256 }, { x: 228, y: 256 }, { x: 252, y: 256 }, { x: 276, y: 256 } ],
-  floor: [ { x: 70, y: 372 }, { x: 150, y: 372 }, { x: 234, y: 372 }, { x: 314, y: 372 } ],
+  wall:  [ { x: 138, y: 150, s: 1.15 }, { x: 246, y: 150, s: 1.15 } ],
+  altar: [ // far row (smaller) ...
+           { x: 120, y: 250, s: 1.05 }, { x: 168, y: 250, s: 1.05 }, { x: 216, y: 250, s: 1.05 }, { x: 264, y: 250, s: 1.05 },
+           // ... near row (larger)
+           { x: 110, y: 292, s: 1.40 }, { x: 166, y: 292, s: 1.40 }, { x: 218, y: 292, s: 1.40 }, { x: 274, y: 292, s: 1.40 } ],
+  floor: [ { x: 64, y: 410, s: 1.20 }, { x: 150, y: 412, s: 1.28 }, { x: 234, y: 412, s: 1.28 }, { x: 320, y: 410, s: 1.20 } ],
 };
 const ALTAR_PER = 7;   // palette chips per page
 
@@ -515,68 +520,65 @@ function drawDecorAt(id, x, baseY, scale) {
   }
 }
 
-// Clickable regions (palette chips + nav + placed pieces) shared by draw & tap.
+// Clickable regions (palette chips + nav + placed pieces + Done) shared by draw & tap.
 function altarRegions() {
   const regs = [];
   for (const z of ["wall", "altar", "floor"]) {
     (state.altarSlots[z] || []).forEach((id, i) => {
       const s = ALTAR_SLOTS[z][i]; if (!s) return;
-      const hh = (DECOR_META[id] || {}).h || 22;
-      regs.push({ type: "placed", id, x: s.x - 16, y: s.y - hh - 2, w: 32, h: hh + 10 });
+      const hh = ((DECOR_META[id] || {}).h || 22) * (s.s || 1);
+      regs.push({ type: "placed", id, x: s.x - 18, y: s.y - hh - 4, w: 36, h: hh + 12 });
     });
   }
+  regs.push({ type: "done", x: CANVAS_W - 64, y: 8, w: 56, h: 24 });
   const owned = ownedDecor();
   const pages = Math.max(1, Math.ceil(owned.length / ALTAR_PER));
   altarUI.page = Math.max(0, Math.min(altarUI.page || 0, pages - 1));
-  const y = CANVAS_H - 92; let x = 14;
-  if (pages > 1) { regs.push({ type: "pprev", x: 0, y, w: 14, h: 56 }); regs.push({ type: "pnext", x: CANVAS_W - 14, y, w: 14, h: 56 }); x = 18; }
+  const y = ALTAR_VIEW_H + 8; let x = 12;
+  if (pages > 1) { regs.push({ type: "pprev", x: 0, y, w: 12, h: 46 }); regs.push({ type: "pnext", x: CANVAS_W - 12, y, w: 12, h: 46 }); x = 16; }
   for (const id of owned.slice(altarUI.page * ALTAR_PER, altarUI.page * ALTAR_PER + ALTAR_PER)) {
-    regs.push({ type: "chip", id, x, y, w: 48, h: 56 }); x += 52;
+    regs.push({ type: "chip", id, x, y, w: 46, h: 46 }); x += 50;
   }
-  regs.push({ type: "done", x: CANVAS_W / 2 - 40, y: CANVAS_H - 26, w: 80, h: 22 });
   return regs;
 }
 
 function drawAltar() {
-  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: CANVAS_H, color: rgb(20, 16, 28) });
-  drawRect({ pos: vec2(0, 60), width: CANVAS_W, height: 230, color: rgb(74, 60, 92) });             // wall
-  drawRect({ pos: vec2(0, 290), width: CANVAS_W, height: CANVAS_H - 290, color: rgb(58, 46, 70) }); // floor
-  drawText({ text: "Your Altar", pos: vec2(CANVAS_W / 2, 28), size: 18, color: rgb(255, 225, 150), anchor: "center" });
-  drawText({ text: "Tap a piece below to place it · tap a placed piece to remove",
-             pos: vec2(CANVAS_W / 2, 48), size: 9, color: rgb(205, 195, 225), anchor: "center" });
-  // empty-slot guides
-  for (const z of ["wall", "altar", "floor"]) {
-    ALTAR_SLOTS[z].forEach((s, i) => {
-      if ((state.altarSlots[z] || [])[i] != null) return;
-      drawRect({ pos: vec2(s.x, s.y - 5), anchor: "center", width: 6, height: 6, color: rgb(255, 255, 255), opacity: 0.12, radius: 3 });
-    });
+  // the altar scene (angled-down art) fills the top; cosy fallback if still loading
+  if (ready("altar_scene")) {
+    drawSprite({ sprite: "altar_scene", anchor: "topleft", pos: vec2(0, 0), width: CANVAS_W, height: ALTAR_VIEW_H });
+  } else {
+    drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: ALTAR_VIEW_H, color: rgb(40, 32, 52) });
+    drawRect({ pos: vec2(0, 250), width: CANVAS_W, height: ALTAR_VIEW_H - 250, color: rgb(58, 46, 70) });
   }
-  // altar table
-  drawRect({ pos: vec2(58, 258), width: 268, height: 7, color: rgb(150, 120, 150), opacity: 0.6, radius: 2 }); // cloth
-  drawRect({ pos: vec2(60, 263), width: 264, height: 9, color: rgb(120, 92, 64), radius: 3 });                 // top
-  drawRect({ pos: vec2(72, 272), width: 12, height: 34, color: rgb(96, 72, 50) });                             // legs
-  drawRect({ pos: vec2(300, 272), width: 12, height: 34, color: rgb(96, 72, 50) });
-  // zone labels with caps
   const A = state.altarSlots;
-  drawText({ text: "Wall  " + A.wall.length + "/" + ALTAR_CAP.wall, pos: vec2(CANVAS_W / 2, 78), size: 9, color: rgb(210, 200, 230), anchor: "center" });
-  drawText({ text: "Altar  " + A.altar.length + "/" + ALTAR_CAP.altar, pos: vec2(CANVAS_W / 2, 230), size: 9, color: rgb(210, 200, 230), anchor: "center" });
-  drawText({ text: "Floor  " + A.floor.length + "/" + ALTAR_CAP.floor, pos: vec2(CANVAS_W / 2, 322), size: 9, color: rgb(210, 200, 230), anchor: "center" });
-  // placed pieces
+  // a faint marker at the next free slot of each zone (a gentle "where it lands")
   for (const z of ["wall", "altar", "floor"]) {
-    (A[z] || []).forEach((id, i) => { const s = ALTAR_SLOTS[z][i]; if (s) drawDecorAt(id, s.x, s.y); });
+    const n = A[z].length, s = n < ALTAR_CAP[z] ? ALTAR_SLOTS[z][n] : null;
+    if (s) drawRect({ pos: vec2(s.x, s.y - 6), anchor: "center", width: 7, height: 7, color: rgb(255, 240, 200), opacity: 0.16 + pulse() * 0.12, radius: 4 });
   }
-  // palette
-  const py = CANVAS_H - 96;
-  drawRect({ pos: vec2(8, py), width: CANVAS_W - 16, height: 64, color: rgb(34, 28, 44), radius: 8, outline: { color: rgb(150, 120, 60), width: 1 } });
-  if (!ownedDecor().length) drawText({ text: "Buy pieces at the Furnishings shop to decorate.", pos: vec2(CANVAS_W / 2, py + 30), size: 10, color: rgb(170, 160, 185), anchor: "center" });
+  // placed pieces, back-to-front so nearer rows overlap farther ones
+  for (const z of ["wall", "altar", "floor"]) {
+    (A[z] || []).forEach((id, i) => { const s = ALTAR_SLOTS[z][i]; if (s) drawDecorAt(id, s.x, s.y, s.s); });
+  }
+  // header bar (legible over the art)
+  drawRect({ pos: vec2(0, 0), width: CANVAS_W, height: 34, color: rgb(16, 12, 22), opacity: 0.6 });
+  drawText({ text: "Your Altar", pos: vec2(10, 8), size: 14, color: rgb(255, 225, 150) });
+  drawText({ text: "Wall " + A.wall.length + "/" + ALTAR_CAP.wall + "   Altar " + A.altar.length + "/" + ALTAR_CAP.altar + "   Floor " + A.floor.length + "/" + ALTAR_CAP.floor,
+             pos: vec2(CANVAS_W / 2 - 6, 12), size: 8, color: rgb(205, 195, 225), anchor: "center" });
+  // palette strip
+  drawRect({ pos: vec2(0, ALTAR_VIEW_H), width: CANVAS_W, height: CANVAS_H - ALTAR_VIEW_H, color: rgb(28, 22, 38) });
+  drawRect({ pos: vec2(6, ALTAR_VIEW_H + 4), width: CANVAS_W - 12, height: 54, color: rgb(40, 34, 52), radius: 8, outline: { color: rgb(140, 112, 60), width: 1 } });
+  if (!ownedDecor().length) drawText({ text: "Buy pieces at the Furnishings shop to decorate.", pos: vec2(CANVAS_W / 2, ALTAR_VIEW_H + 30), size: 10, color: rgb(170, 160, 185), anchor: "center" });
+  drawText({ text: "tap a piece to place it · tap a placed piece to remove", pos: vec2(CANVAS_W / 2, CANVAS_H - 10), size: 8, color: rgb(150, 142, 168), anchor: "center" });
   for (const b of altarRegions()) {
     if (b.type === "chip") {
-      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(46, 40, 58), radius: 5, outline: { color: rgb(120, 110, 140), width: 1 } });
-      drawDecorAt(b.id, b.x + b.w / 2, b.y + b.h - 10, 0.8);
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(50, 44, 64), radius: 5, outline: { color: rgb(120, 110, 140), width: 1 } });
+      const cs = Math.min(0.85, 34 / ((DECOR_META[b.id] || {}).h || 22));
+      drawDecorAt(b.id, b.x + b.w / 2, b.y + b.h - 8, cs);
     } else if (b.type === "pprev" || b.type === "pnext") {
-      drawText({ text: b.type === "pprev" ? "<" : ">", pos: vec2(b.x + 7, b.y + 28), size: 16, color: rgb(220, 220, 235), anchor: "center" });
+      drawText({ text: b.type === "pprev" ? "<" : ">", pos: vec2(b.x + 6, b.y + 23), size: 15, color: rgb(220, 220, 235), anchor: "center" });
     } else if (b.type === "done") {
-      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(120, 95, 150), radius: 6 });
+      drawRect({ pos: vec2(b.x, b.y), width: b.w, height: b.h, color: rgb(120, 95, 150), radius: 6, outline: { color: rgb(210, 190, 235), width: 1 } });
       drawText({ text: "Done", pos: vec2(b.x + b.w / 2, b.y + b.h / 2), size: 12, color: rgb(245, 240, 255), anchor: "center" });
     }
   }
