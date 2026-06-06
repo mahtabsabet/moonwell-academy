@@ -780,6 +780,9 @@ const ROOMS = {
       { gx: 9, gy: 2, kind: "pots" },
       { gx: 1, gy: 2, kind: "lantern", size: 26 },
       { gx: 1, gy: 6, kind: "barrel" },
+      // remedies on the dispensary shelf
+      { gx: 5, gy: 2, kind: "item_health_potion", size: 24, solid: false },
+      { gx: 6, gy: 2, kind: "item_energy_potion", size: 24, solid: false },
     ],
   },
 
@@ -1004,10 +1007,14 @@ const ROOMS = {
     decor: [
       { gx: 1,  gy: 1,  kind: "lantern", size: 26 },
       { gx: 10, gy: 1,  kind: "lantern", size: 26 },
+      // market stall goods laid out in the square
+      { gx: 3, gy: 8, kind: "item_health_potion", size: 24, solid: false },
+      { gx: 4, gy: 8, kind: "item_apple",         size: 24, solid: false },
+      { gx: 7, gy: 8, kind: "item_pomegranate",   size: 24, solid: false },
+      { gx: 8, gy: 8, kind: "item_energy_potion", size: 24, solid: false },
       { gx: 1,  gy: 9,  kind: "barrel" },
       { gx: 10, gy: 9,  kind: "barrel" },
-      { gx: 4,  gy: 8,  kind: "pots" },
-      { gx: 7,  gy: 8,  kind: "pots" },
+      { gx: 5,  gy: 8,  kind: "pots" },
     ],
   },
   furnishings: {
@@ -1017,10 +1024,16 @@ const ROOMS = {
     doors: [ { gx: 5, gy: 11, to: "market", atGx: 5, atGy: 1, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Furnisher", color: [180, 150, 200], action: "shop", shop: "furnishings" } ],
     decor: [
-      { gx: 2, gy: 2, kind: "bookshelf" },
-      { gx: 9, gy: 2, kind: "crystal_ball", size: 30 },
+      // furniture showroom display
+      { gx: 2, gy: 1, kind: "bookshelf" },
+      { gx: 3, gy: 1, kind: "lantern",   size: 26 },
+      { gx: 4, gy: 1, kind: "cauldron",  size: 30 },
+      { gx: 7, gy: 1, kind: "telescope", size: 30 },
+      { gx: 8, gy: 1, kind: "crystal_ball", size: 30 },
+      { gx: 9, gy: 1, kind: "chalice",   size: 24, solid: false },
       { gx: 2, gy: 8, kind: "barrel" },
-      { gx: 9, gy: 8, kind: "lantern", size: 26 },
+      { gx: 9, gy: 8, kind: "star_chart", size: 26, solid: false },
+      { gx: 8, gy: 8, kind: "pentacle", flat: true, size: 28, solid: false },
       { gx: 5, gy: 6, kind: "rug", solid: false, flat: true, size: 38 },
     ],
   },
@@ -1031,10 +1044,16 @@ const ROOMS = {
     doors: [ { gx: 5, gy: 11, to: "market", atGx: 2, atGy: 1, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gemcutter", color: [160, 130, 215], action: "shop", shop: "gem" } ],
     decor: [
-      { gx: 2, gy: 2, kind: "crystal_ball", size: 30 },
-      { gx: 9, gy: 2, kind: "crystal_ball", size: 30 },
-      { gx: 2, gy: 8, kind: "barrel" },
-      { gx: 9, gy: 8, kind: "lantern", size: 26 },
+      // gems on display along the back counter
+      { gx: 2, gy: 1, kind: "item_amethyst",         size: 24, solid: false },
+      { gx: 3, gy: 1, kind: "item_clear_quartz",     size: 24, solid: false },
+      { gx: 4, gy: 1, kind: "item_rose_quartz",      size: 24, solid: false },
+      { gx: 7, gy: 1, kind: "item_citrine",          size: 24, solid: false },
+      { gx: 8, gy: 1, kind: "item_black_tourmaline", size: 24, solid: false },
+      { gx: 9, gy: 1, kind: "item_moonstone",        size: 24, solid: false },
+      { gx: 2, gy: 8, kind: "crystal_ball", size: 30 },
+      { gx: 9, gy: 8, kind: "crystal_ball", size: 30 },
+      { gx: 5, gy: 8, kind: "barrel" },
     ],
   },
   seed_shop: {
@@ -1044,10 +1063,16 @@ const ROOMS = {
     doors: [ { gx: 5, gy: 11, to: "market", atGx: 8, atGy: 1, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Gardener", color: [120, 180, 90], action: "shop", shop: "seed" } ],
     decor: [
-      { gx: 2, gy: 2, kind: "pots" },
-      { gx: 9, gy: 2, kind: "pots" },
+      // potted herbs on display
+      { gx: 2, gy: 1, kind: "herb_lavender", size: 30, solid: false },
+      { gx: 3, gy: 1, kind: "herb_basil",    size: 30, solid: false },
+      { gx: 4, gy: 1, kind: "herb_mint",     size: 30, solid: false },
+      { gx: 7, gy: 1, kind: "herb_rose",     size: 30, solid: false },
+      { gx: 8, gy: 1, kind: "herb_rosemary", size: 30, solid: false },
+      { gx: 9, gy: 1, kind: "herb_mugwort",  size: 30, solid: false },
       { gx: 2, gy: 8, kind: "watering_can", size: 30 },
       { gx: 9, gy: 8, kind: "seed_packet", size: 22 },
+      { gx: 5, gy: 8, kind: "pots" },
     ],
   },
   tools_shop: {
@@ -1057,10 +1082,15 @@ const ROOMS = {
     doors: [ { gx: 5, gy: 11, to: "market", atGx: 1, atGy: 4, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Toolwright", color: [205, 170, 120], action: "shop", shop: "tools" } ],
     decor: [
-      { gx: 2, gy: 2, kind: "bookshelf" },
-      { gx: 9, gy: 2, kind: "crystal_ball", size: 28 },
-      { gx: 2, gy: 8, kind: "barrel" },
-      { gx: 9, gy: 8, kind: "lantern", size: 26 },
+      // tools on display
+      { gx: 2, gy: 1, kind: "item_pickaxe",    size: 26, solid: false },
+      { gx: 3, gy: 1, kind: "item_flute",      size: 26, solid: false },
+      { gx: 4, gy: 1, kind: "item_candle",     size: 24, solid: false },
+      { gx: 7, gy: 1, kind: "item_pendulum",   size: 24, solid: false },
+      { gx: 8, gy: 1, kind: "item_tarot_deck", size: 24, solid: false },
+      { gx: 9, gy: 1, kind: "item_wand",       size: 26, solid: false },
+      { gx: 2, gy: 8, kind: "bookshelf" },
+      { gx: 9, gy: 8, kind: "barrel" },
     ],
   },
   fruit_shop: {
@@ -1070,10 +1100,16 @@ const ROOMS = {
     doors: [ { gx: 5, gy: 11, to: "market", atGx: 10, atGy: 4, label: "Street v" } ],
     inters: [ { gx: 6, gy: 2, kind: "shop", name: "Grocer", color: [210, 120, 100], action: "shop", shop: "fruit" } ],
     decor: [
-      { gx: 2, gy: 2, kind: "pots" },
-      { gx: 9, gy: 2, kind: "pots" },
+      // fruit on display
+      { gx: 2, gy: 1, kind: "item_apple",       size: 24, solid: false },
+      { gx: 3, gy: 1, kind: "item_lemon",       size: 24, solid: false },
+      { gx: 4, gy: 1, kind: "item_pomegranate", size: 24, solid: false },
+      { gx: 7, gy: 1, kind: "item_apple",       size: 24, solid: false },
+      { gx: 8, gy: 1, kind: "item_lemon",       size: 24, solid: false },
+      { gx: 9, gy: 1, kind: "item_pomegranate", size: 24, solid: false },
       { gx: 2, gy: 8, kind: "barrel" },
       { gx: 9, gy: 8, kind: "barrel" },
+      { gx: 5, gy: 8, kind: "pots" },
     ],
   },
 
