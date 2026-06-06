@@ -1319,7 +1319,7 @@ const GH_BASE = ROOMS.greenhouse.inters.slice();
    always populated. `friend` marks Robin (the established common-room friend).
    ============================================================================ */
 const STUDENT_SPEED = 55;     // wandering pace in px/sec (gentler than the player)
-const PLAYER_AR_S   = 0.5;    // aspect (w/h) the student sprites are padded to
+const PLAYER_AR_S   = 0.458;    // aspect (w/h) the student sprites are padded to
 const DAY_PERIODS = [
   { id: "morning",   name: "Morning",   tint: [255, 226, 150] },
   { id: "afternoon", name: "Afternoon", tint: [255, 198, 120] },
